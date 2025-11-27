@@ -1,26 +1,136 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* EDC Brand Colors - Gaming/Modern Theme */
+  --primary: #6366f1;        /* Indigo - Primary actions */
+  --primary-dark: #4f46e5;   /* Darker indigo */
+  --secondary: #8b5cf6;      /* Purple - Secondary actions */
+  --accent: #ec4899;         /* Pink - Accents & highlights */
+  --success: #10b981;        /* Green - Success states */
+  --warning: #f59e0b;        /* Amber - Warnings */
+  --danger: #ef4444;         /* Red - Errors */
+  
+  /* Neutral Colors */
+  --background: #0f172a;     /* Dark blue-gray */
+  --surface: #1e293b;        /* Lighter dark */
+  --surface-light: #334155;  /* Card hover */
+  --foreground: #f1f5f9;     /* Text */
+  --muted: #94a3b8;          /* Muted text */
+  
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --gradient-secondary: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
+  --gradient-success: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  
+  /* Fonts */
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  margin: 0;
+  padding: 0;
 }
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-light);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.4s ease-out;
+}
+
+/* Gamification Elements */
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--surface-light);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  background: var(--surface-light);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.glass-card {
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 16px;
+}
+
+.gradient-border {
+  position: relative;
+  background: var(--surface);
+  border-radius: 12px;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  padding: 2px;
+  background: var(--gradient-primary);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+/* Progress Bar */
+.progress-bar {
+  height: 8px;
+  background: var(--surface-light);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--gradient-primary);
+  transition: width 0.5s ease;
+  border-radius: 4px;
+}
+
