@@ -79,7 +79,7 @@ export default function Navbar() {
                   style={{ color: 'var(--foreground)' }}
                   onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-light)'}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                  📊 Dashboard
+                  Dashboard
                 </button>
                 <button
                   onClick={() => router.push("/leaderboard")}
@@ -87,7 +87,7 @@ export default function Navbar() {
                   style={{ color: 'var(--foreground)' }}
                   onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-light)'}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                  🏆 Leaderboard
+                  Leaderboard
                 </button>
                 <button
                   onClick={handleSignOut}
@@ -172,7 +172,7 @@ export default function Navbar() {
                     }}
                     className="w-full px-4 py-2 text-sm font-medium rounded-lg text-left"
                     style={{ background: 'var(--surface-light)', color: 'var(--foreground)' }}>
-                    📊 Dashboard
+                    Dashboard
                   </button>
                   <button
                     onClick={() => {
@@ -181,7 +181,7 @@ export default function Navbar() {
                     }}
                     className="w-full px-4 py-2 text-sm font-medium rounded-lg text-left"
                     style={{ background: 'var(--surface-light)', color: 'var(--foreground)' }}>
-                    🏆 Leaderboard
+                    Leaderboard
                   </button>
                   <button
                     onClick={() => {

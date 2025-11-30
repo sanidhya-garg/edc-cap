@@ -92,7 +92,7 @@ export default function DashboardPage() {
 
     const fetchData = async () => {
       try {
-        // Fetch all open tasks
+        // Fetch all tasks (including closed ones for display)
         const tasksQuery = query(
           collection(db, "tasks"),
           orderBy("createdAt", "desc")
@@ -161,7 +161,8 @@ export default function DashboardPage() {
     const submitted = hasSubmitted(task.id);
     const isClosed = task.status === 'closed';
     const isExpired = task.deadline && task.deadline.toDate() < new Date();
-    const isActive = !isClosed && !isExpired;
+    // Task is active only if it's explicitly open AND not expired
+    const isActive = task.status === 'open' && !isExpired;
 
     if (filter === 'unattempted') {
       return !submitted && isActive;
@@ -328,7 +329,13 @@ export default function DashboardPage() {
               <span className="text-2xl">🎯</span>
             </div>
             <div className="text-3xl font-bold" style={{ color: 'var(--warning)' }}>
-              {tasks.filter(t => t.status === 'open').length}
+              {tasks.filter(t => {
+                const isOpen = t.status === 'open';
+                const notExpired = !t.deadline || t.deadline.toDate() >= new Date();
+                const notCompleted = !hasSubmitted(t.id);
+                // Task is active only if explicitly open AND not expired
+                return isOpen && notExpired && notCompleted;
+              }).length}
             </div>
             <div className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
               Available now
