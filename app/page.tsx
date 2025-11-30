@@ -9,11 +9,11 @@ export default function Home() {
   const faqs = [
     {
       question: "What is the Campus Ambassador Program?",
-      answer: "The EDC IIT Delhi Campus Ambassador Program empowers students to represent EDC at their colleges, organize events, and foster entrepreneurial culture among peers."
+      answer: "The eDC IIT Delhi Campus Ambassador Program empowers students to represent eDC at their colleges, organize events, and foster entrepreneurial culture among peers."
     },
     {
       question: "Who can apply?",
-      answer: "Any undergraduate or graduate student passionate about entrepreneurship and willing to dedicate time to promote EDC initiatives can apply."
+      answer: "Any undergraduate or graduate student passionate about entrepreneurship and willing to dedicate time to promote eDC initiatives can apply."
     },
     {
       question: "What are the benefits?",
@@ -25,7 +25,7 @@ export default function Home() {
     },
     {
       question: "How do I earn points?",
-      answer: "Complete assigned tasks, organize events, promote EDC activities, and submit proof of work through your dashboard to earn points and climb the leaderboard."
+      answer: "Complete assigned tasks, organize events, promote eDC activities, and submit proof of work through your dashboard to earn points and climb the leaderboard."
     }
   ];
 
@@ -172,7 +172,7 @@ export default function Home() {
                 Exclusive Perks
               </h3>
               <p style={{ color: 'var(--muted)' }}>
-                Access to exclusive EDC events, workshops, competitions, and early-bird opportunities.
+                Access to exclusive eDC events, workshops, competitions, and early-bird opportunities.
               </p>
             </div>
           </div>
@@ -215,7 +215,7 @@ export default function Home() {
                     Promote EDC Initiatives
                   </h3>
                   <p style={{ color: 'var(--muted)' }}>
-                    Spread awareness about EDC programs, hackathons, competitions, and opportunities through various channels.
+                    Spread awareness about eDC programs, hackathons, competitions, and opportunities through various channels.
                   </p>
                 </div>
               </div>
@@ -331,145 +331,201 @@ export default function Home() {
         </div>
       </section>
       {/* Footer */}
-      <footer className="py-16 border-t" style={{ background: 'var(--surface)', borderColor: 'var(--surface-light)' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+      <footer className="relative overflow-hidden py-20 border-t" 
+              style={{ 
+                background: 'linear-gradient(135deg, var(--surface) 0%, rgba(15, 23, 42, 0.95) 100%)',
+                borderColor: 'var(--surface-light)' 
+              }}>
+        {/* Gradient Orbs */}
+        <div className="absolute top-0 left-0 w-96 h-96 rounded-full opacity-20 blur-3xl"
+             style={{ background: 'var(--gradient-primary)' }}></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full opacity-20 blur-3xl"
+             style={{ background: 'var(--gradient-accent)' }}></div>
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-16">
             {/* Brand */}
-            <div className="md:col-span-2">
-              <div className="flex items-center mb-4">
+            <div className="md:col-span-5">
+              <div className="flex items-center mb-6">
                 <div className="relative h-16 w-64">
                   <Image 
                     src="/assets/logo.png" 
-                    alt="EDC IIT Delhi Logo" 
+                    alt="eDC IIT Delhi Logo" 
                     fill
                     className="object-contain"
                   />
                 </div>
               </div>
-              <p className="text-sm mb-4 max-w-sm" style={{ color: 'var(--muted)' }}>
+              <p className="text-base mb-6 max-w-md leading-relaxed" style={{ color: 'var(--muted)' }}>
                 Empowering students to foster entrepreneurial spirit across colleges nationwide. Join us in building the next generation of innovators and leaders.
               </p>
-              <div className="flex gap-4">
-                <a href="#" 
-                   className="w-10 h-10 rounded-lg flex items-center justify-center transition-all hover:scale-110"
-                   style={{ background: 'var(--surface-light)' }}>
-                  <span style={{ color: 'var(--foreground)' }}>𝕏</span>
-                </a>
-                <a href="#" 
-                   className="w-10 h-10 rounded-lg flex items-center justify-center transition-all hover:scale-110"
-                   style={{ background: 'var(--surface-light)' }}>
-                  <span style={{ color: 'var(--foreground)' }}>in</span>
-                </a>
-                <a href="#" 
-                   className="w-10 h-10 rounded-lg flex items-center justify-center transition-all hover:scale-110"
-                   style={{ background: 'var(--surface-light)' }}>
-                  <span style={{ color: 'var(--foreground)' }}>IG</span>
-                </a>
+              
+              {/* Social Links */}
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Connect with us:</span>
+                <div className="flex gap-3">
+                  <a href="#" 
+                     className="w-11 h-11 rounded-xl flex items-center justify-center transition-all hover:scale-110 hover:rotate-6 group relative overflow-hidden"
+                     style={{ background: 'var(--surface-light)', border: '1px solid var(--surface-lighter)' }}>
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                         style={{ background: 'var(--gradient-primary)' }}></div>
+                    <span className="relative text-lg font-bold" style={{ color: 'var(--foreground)' }}>𝕏</span>
+                  </a>
+                  <a href="#" 
+                     className="w-11 h-11 rounded-xl flex items-center justify-center transition-all hover:scale-110 hover:rotate-6 group relative overflow-hidden"
+                     style={{ background: 'var(--surface-light)', border: '1px solid var(--surface-lighter)' }}>
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                         style={{ background: 'var(--gradient-secondary)' }}></div>
+                    <span className="relative text-base font-bold" style={{ color: 'var(--foreground)' }}>in</span>
+                  </a>
+                  <a href="#" 
+                     className="w-11 h-11 rounded-xl flex items-center justify-center transition-all hover:scale-110 hover:rotate-6 group relative overflow-hidden"
+                     style={{ background: 'var(--surface-light)', border: '1px solid var(--surface-lighter)' }}>
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                         style={{ background: 'var(--gradient-accent)' }}></div>
+                    <span className="relative text-base font-bold" style={{ color: 'var(--foreground)' }}>IG</span>
+                  </a>
+                  <a href="#" 
+                     className="w-11 h-11 rounded-xl flex items-center justify-center transition-all hover:scale-110 hover:rotate-6 group relative overflow-hidden"
+                     style={{ background: 'var(--surface-light)', border: '1px solid var(--surface-lighter)' }}>
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                         style={{ background: 'var(--gradient-success)' }}></div>
+                    <span className="relative text-xl" style={{ color: 'var(--foreground)' }}>▶</span>
+                  </a>
+                </div>
               </div>
             </div>
 
             {/* Quick Links */}
-            <div>
-              <h4 className="font-semibold mb-4" style={{ color: 'var(--foreground)' }}>
-                Quick Links
+            <div className="md:col-span-2">
+              <h4 className="text-lg font-bold mb-5 flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
+                <span className="text-2xl">🔗</span>
+                <span>Quick Links</span>
               </h4>
-              <ul className="space-y-3 text-sm">
+              <ul className="space-y-3">
                 <li>
                   <a href="#benefits" 
-                     className="transition-all hover:scale-105 inline-block"
+                     className="text-sm transition-all hover:translate-x-1 inline-flex items-center gap-2 group"
                      style={{ color: 'var(--muted)' }}
                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--muted)'}>
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                     Why Join Us
                   </a>
                 </li>
                 <li>
                   <a href="#programs" 
-                     className="transition-all hover:scale-105 inline-block"
+                     className="text-sm transition-all hover:translate-x-1 inline-flex items-center gap-2 group"
                      style={{ color: 'var(--muted)' }}
                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--muted)'}>
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                     What We Do
                   </a>
                 </li>
                 <li>
                   <a href="#faq" 
-                     className="transition-all hover:scale-105 inline-block"
+                     className="text-sm transition-all hover:translate-x-1 inline-flex items-center gap-2 group"
                      style={{ color: 'var(--muted)' }}
                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--muted)'}>
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                     FAQ
                   </a>
                 </li>
                 <li>
                   <a href="/leaderboard" 
-                     className="transition-all hover:scale-105 inline-block"
+                     className="text-sm transition-all hover:translate-x-1 inline-flex items-center gap-2 group"
                      style={{ color: 'var(--muted)' }}
                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--muted)'}>
-                    Leaderboard
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                    Leaderboard 🏆
                   </a>
                 </li>
               </ul>
             </div>
 
             {/* Get Started */}
-            <div>
-              <h4 className="font-semibold mb-4" style={{ color: 'var(--foreground)' }}>
-                Get Started
+            <div className="md:col-span-2">
+              <h4 className="text-lg font-bold mb-5 flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
+                <span className="text-2xl">🚀</span>
+                <span>Get Started</span>
               </h4>
-              <ul className="space-y-3 text-sm">
+              <ul className="space-y-3">
                 <li>
                   <a href="/auth/signup" 
-                     className="transition-all hover:scale-105 inline-block"
+                     className="text-sm transition-all hover:translate-x-1 inline-flex items-center gap-2 group"
                      style={{ color: 'var(--muted)' }}
                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--muted)'}>
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                     Sign Up
                   </a>
                 </li>
                 <li>
                   <a href="/auth/login" 
-                     className="transition-all hover:scale-105 inline-block"
+                     className="text-sm transition-all hover:translate-x-1 inline-flex items-center gap-2 group"
                      style={{ color: 'var(--muted)' }}
                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--muted)'}>
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                     Login
                   </a>
                 </li>
                 <li>
                   <a href="/dashboard" 
-                     className="transition-all hover:scale-105 inline-block"
+                     className="text-sm transition-all hover:translate-x-1 inline-flex items-center gap-2 group"
                      style={{ color: 'var(--muted)' }}
                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--muted)'}>
-                    Dashboard
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                    Dashboard 📊
                   </a>
                 </li>
               </ul>
             </div>
+
+            {/* Contact/Support */}
+            <div className="md:col-span-3">
+              <h4 className="text-lg font-bold mb-5 flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
+                <span className="text-2xl">📧</span>
+                <span>Get in Touch</span>
+              </h4>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <span className="text-xl">🏛️</span>
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>IIT Delhi</p>
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>Hauz Khas, New Delhi</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-xl">✉️</span>
+                  <div>
+                    <p className="text-sm" style={{ color: 'var(--muted)' }}>support@edciitd.com</p>
+                  </div>
+                </div>
+                <div className="p-3 rounded-lg border" 
+                     style={{ background: 'rgba(99, 102, 241, 0.05)', borderColor: 'var(--primary)' }}>
+                  <p className="text-xs font-semibold mb-1" style={{ color: 'var(--primary)' }}>💡 Need Help?</p>
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                    Check our <a href="#faq" className="underline hover:no-underline" style={{ color: 'var(--primary)' }}>FAQ</a> section
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
           
-          <div className="pt-8 border-t flex flex-col md:flex-row justify-between items-center gap-4" 
-               style={{ borderColor: 'var(--surface-light)' }}>
-            <p className="text-sm text-center md:text-left" style={{ color: 'var(--muted)' }}>
-              © {new Date().getFullYear()} Entrepreneurship Development Cell, IIT Delhi. All rights reserved.
-            </p>
-            <div className="flex gap-6 text-sm">
-              <a href="#" 
-                 className="transition-all hover:scale-105"
-                 style={{ color: 'var(--muted)' }}
-                 onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
-                 onMouseLeave={(e) => e.currentTarget.style.color = 'var(--muted)'}>
-                Privacy Policy
-              </a>
-              <a href="#" 
-                 className="transition-all hover:scale-105"
-                 style={{ color: 'var(--muted)' }}
-                 onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
-                 onMouseLeave={(e) => e.currentTarget.style.color = 'var(--muted)'}>
-                Terms of Service
-              </a>
+          {/* Bottom Bar */}
+          <div className="pt-8 border-t" 
+               style={{ borderColor: 'rgba(255, 255, 255, 0.05)' }}>
+            <div className="flex flex-col md:flex-row justify-center items-center gap-6">
+              <div className="flex items-center gap-2 text-sm text-center" style={{ color: 'var(--muted)' }}>
+                <span>Made with</span>
+                <span className="text-red-500 animate-pulse text-lg">❤️</span>
+                <span>by EDC IIT Delhi © {new Date().getFullYear()}</span>
+              </div>
             </div>
           </div>
         </div>

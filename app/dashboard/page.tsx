@@ -7,6 +7,73 @@ import { useAuth } from "@/app/providers/AuthProvider";
 import { db } from "@/lib/firebase";
 import { Task, Submission } from "@/lib/types";
 
+// Level tiers configuration
+const LEVEL_TIERS = [
+  {
+    level: 'Bronze',
+    minPoints: 0,
+    maxPoints: 99,
+    icon: '🥉',
+    color: '#cd7f32',
+    criteria: 'Initial onboarding',
+    rewards: ['Certificate of participation']
+  },
+  {
+    level: 'Silver',
+    minPoints: 100,
+    maxPoints: 499,
+    icon: '🥈',
+    color: '#c0c0c0',
+    criteria: 'Mid-level performance',
+    rewards: [
+      'Certificate of participation',
+      'Passes to attend BECon\'26',
+      'eDC IIT D goodies',
+      'Discount Coupons'
+    ]
+  },
+  {
+    level: 'Gold',
+    minPoints: 500,
+    maxPoints: 999,
+    icon: '🥇',
+    color: '#ffd700',
+    criteria: 'Top 10% in leaderboard',
+    rewards: [
+      'Certificate of participation',
+      'Passes to attend BECon\'26',
+      'eDC IIT D goodies',
+      'LOR from eDC IIT Delhi',
+      'Access to exclusive eDC\'s workshops, webinars etc',
+      'Discount Coupons'
+    ]
+  },
+  {
+    level: 'Top Performer',
+    minPoints: 1000,
+    maxPoints: Infinity,
+    icon: '💎',
+    color: '#b9f2ff',
+    criteria: 'Top 1% in leaderboard',
+    rewards: [
+      'Cash prize',
+      'Certificate and LOR',
+      'Front row seats in BECon\'26 exclusive events',
+      'Internship Opportunity with a startup',
+      '1-on-1 mentorship session with a startup founder or VC'
+    ]
+  }
+];
+
+function getCurrentLevel(points: number) {
+  return LEVEL_TIERS.find(tier => points >= tier.minPoints && points <= tier.maxPoints) || LEVEL_TIERS[0];
+}
+
+function getNextLevel(points: number) {
+  const currentIndex = LEVEL_TIERS.findIndex(tier => points >= tier.minPoints && points <= tier.maxPoints);
+  return LEVEL_TIERS[currentIndex + 1] || null;
+}
+
 export default function DashboardPage() {
   const { user, userProfile, logout } = useAuth();
   const router = useRouter();
@@ -15,6 +82,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [userRank, setUserRank] = useState<number>(0);
   const [filter, setFilter] = useState<'unattempted' | 'completed' | 'all'>('unattempted');
+  const [showLevelsModal, setShowLevelsModal] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -67,6 +135,13 @@ export default function DashboardPage() {
   }, [user, router]);
 
   if (!user || !userProfile) return null;
+
+  const userPoints = userProfile.points || 0;
+  const currentLevel = getCurrentLevel(userPoints);
+  const nextLevel = getNextLevel(userPoints);
+  const progressToNext = nextLevel 
+    ? ((userPoints - currentLevel.minPoints) / (nextLevel.minPoints - currentLevel.minPoints)) * 100
+    : 100;
 
   const hasSubmitted = (taskId: string) => {
     return submissions.some(s => s.taskId === taskId);
@@ -131,6 +206,77 @@ export default function DashboardPage() {
       </div>
 
       <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Level Progress Bar */}
+        <div 
+          className="glass-card p-6 cursor-pointer transition-all hover:scale-[1.01] animate-fadeIn"
+          onClick={() => setShowLevelsModal(true)}
+          style={{ position: 'relative', overflow: 'hidden' }}
+        >
+          <div className="absolute inset-0 opacity-10"
+               style={{ background: `linear-gradient(135deg, ${currentLevel.color} 0%, transparent 100%)` }}></div>
+          
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <span className="text-4xl">{currentLevel.icon}</span>
+                <div>
+                  <h3 className="text-xl font-bold" style={{ color: currentLevel.color }}>
+                    {currentLevel.level} Tier
+                  </h3>
+                  <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                    {currentLevel.criteria}
+                  </p>
+                </div>
+              </div>
+              {nextLevel && (
+                <div className="text-right">
+                  <p className="text-sm" style={{ color: 'var(--muted)' }}>Next: {nextLevel.level}</p>
+                  <p className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>
+                    {nextLevel.minPoints - userPoints} points to go
+                  </p>
+                </div>
+              )}
+              {!nextLevel && (
+                <div className="text-right">
+                  <p className="text-lg font-bold" style={{ color: currentLevel.color }}>
+                    🏆 Max Level Reached!
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Progress Bar */}
+            <div className="relative">
+              <div className="h-3 rounded-full overflow-hidden" style={{ background: 'var(--surface-light)' }}>
+                <div 
+                  className="h-full transition-all duration-500 rounded-full"
+                  style={{ 
+                    width: `${progressToNext}%`,
+                    background: `linear-gradient(90deg, ${currentLevel.color}, ${nextLevel?.color || currentLevel.color})`
+                  }}
+                ></div>
+              </div>
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-xs font-semibold" style={{ color: currentLevel.color }}>
+                  {currentLevel.minPoints} pts
+                </span>
+                <span className="text-xs" style={{ color: 'var(--muted)' }}>
+                  {userPoints} / {nextLevel ? nextLevel.minPoints : currentLevel.maxPoints} pts
+                </span>
+                {nextLevel && (
+                  <span className="text-xs font-semibold" style={{ color: nextLevel.color }}>
+                    {nextLevel.minPoints} pts
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <p className="text-xs text-center mt-3" style={{ color: 'var(--muted)' }}>
+              💡 Click to view all tiers and rewards
+            </p>
+          </div>
+        </div>
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-fadeIn">
           {/* Total Points */}
@@ -369,8 +515,143 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+
+        {/* Levels Modal */}
+        {showLevelsModal && (
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'rgba(0, 0, 0, 0.8)' }}
+            onClick={() => setShowLevelsModal(false)}
+          >
+            <div 
+              className="glass-card max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8 animate-fadeIn"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-3xl font-bold" style={{ color: 'var(--foreground)' }}>
+                  🏆 Ambassador Tiers & Rewards
+                </h2>
+                <button
+                  onClick={() => setShowLevelsModal(false)}
+                  className="text-2xl w-10 h-10 rounded-lg transition-all hover:scale-110"
+                  style={{ background: 'var(--surface-light)', color: 'var(--foreground)' }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <p className="mb-6" style={{ color: 'var(--muted)' }}>
+                Complete tasks and earn points to unlock exclusive rewards and benefits!
+              </p>
+
+              <div className="space-y-4">
+                {LEVEL_TIERS.map((tier, index) => {
+                  const isCurrentTier = tier.level === currentLevel.level;
+                  const isUnlocked = userPoints >= tier.minPoints;
+                  
+                  return (
+                    <div 
+                      key={tier.level}
+                      className={`p-6 rounded-xl border-2 transition-all ${isCurrentTier ? 'scale-105' : ''}`}
+                      style={{ 
+                        borderColor: isCurrentTier ? tier.color : 'var(--surface-light)',
+                        background: isCurrentTier ? `linear-gradient(135deg, ${tier.color}15, transparent)` : 'var(--surface)',
+                        opacity: isUnlocked ? 1 : 0.6
+                      }}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-4">
+                          <span className="text-5xl">{tier.icon}</span>
+                          <div>
+                            <div className="flex items-center gap-3">
+                              <h3 className="text-2xl font-bold" style={{ color: tier.color }}>
+                                {tier.level}
+                              </h3>
+                              {isCurrentTier && (
+                                <span className="px-3 py-1 rounded-full text-xs font-bold animate-pulse"
+                                      style={{ background: tier.color, color: '#000' }}>
+                                  CURRENT TIER
+                                </span>
+                              )}
+                              {!isUnlocked && (
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold"
+                                      style={{ background: 'var(--surface-light)', color: 'var(--muted)' }}>
+                                  🔒 Locked
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+                              <strong>Criteria:</strong> {tier.criteria}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm" style={{ color: 'var(--muted)' }}>Points Required</p>
+                          <p className="text-xl font-bold" style={{ color: tier.color }}>
+                            {tier.minPoints}
+                            {tier.maxPoints !== Infinity && ` - ${tier.maxPoints}`}
+                            {tier.maxPoints === Infinity && '+'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+                          🎁 Rewards & Benefits:
+                        </h4>
+                        <ul className="space-y-1">
+                          {tier.rewards.map((reward, i) => (
+                            <li 
+                              key={i}
+                              className="text-sm flex items-start gap-2"
+                              style={{ color: 'var(--muted)' }}
+                            >
+                              <span style={{ color: tier.color }}>✓</span>
+                              <span>{reward}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {!isUnlocked && index > 0 && (
+                        <div className="mt-4 p-3 rounded-lg" style={{ background: 'var(--surface-light)' }}>
+                          <p className="text-sm font-semibold" style={{ color: 'var(--warning)' }}>
+                            💪 {tier.minPoints - userPoints} more points needed to unlock!
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-8 p-6 rounded-xl" style={{ background: 'var(--gradient-primary)' }}>
+                <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+                  💡 How to Earn More Points?
+                </h3>
+                <ul className="space-y-2" style={{ color: 'var(--foreground)' }}>
+                  <li className="flex items-start gap-2">
+                    <span>•</span>
+                    <span>Complete available tasks and submit quality work</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span>•</span>
+                    <span>Submit before deadlines to maximize your points</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span>•</span>
+                    <span>Check dashboard regularly for new tasks</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span>•</span>
+                    <span>Aim for excellence - better submissions earn more points!</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
-
