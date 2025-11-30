@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { doc, getDoc, collection, query, where, getDocs, addDoc, Timestamp } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, Timestamp } from "firebase/firestore";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { db } from "@/lib/firebase";
 import { uploadFile } from "@/lib/storage";
@@ -19,6 +19,7 @@ export default function TaskDetailPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -46,6 +47,8 @@ export default function TaskDetailPage() {
             id: submissionsSnap.docs[0].id,
             ...submissionsSnap.docs[0].data()
           } as Submission);
+          const existingSubmission = submissionsSnap.docs[0].data() as Submission;
+          setComment(existingSubmission.comment || "");
         }
       } catch (err) {
         console.error("Error fetching task:", err);
@@ -60,42 +63,72 @@ export default function TaskDetailPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !user || !task) return;
+    if (!user || !task) return;
+
+    // For editing, file is optional (keep existing file if not changed)
+    if (!isEditing && !file) return;
 
     setSubmitting(true);
     setError(null);
 
     try {
-      console.log("Starting submission...");
-      console.log("File:", file.name, "Size:", file.size);
+      console.log(isEditing ? "Updating submission..." : "Starting submission...");
       console.log("User:", user.uid);
       console.log("Task:", id);
 
-      // Upload file to storage
-      console.log("Uploading file...");
-      const { url, fileName } = await uploadFile(
-        file,
-        `submissions/${user.uid}/${id}/${file.name}`
-      );
-      console.log("File uploaded:", url);
+      let fileUrl = submission?.fileUrl || "";
+      let fileName = submission?.fileName || "";
 
-      // Create submission document
-      const submissionData: Omit<Submission, "id"> = {
-        taskId: id as string,
-        userId: user.uid,
-        userEmail: user.email || "",
-        userName: user.displayName || undefined,
-        fileUrl: url,
-        fileName,
-        comment,
-        reviewed: false,
-        submittedAt: Timestamp.now(),
-      };
+      // Only upload new file if one was selected
+      if (file) {
+        console.log("File:", file.name, "Size:", file.size);
+        console.log("Uploading file...");
+        const uploadResult = await uploadFile(
+          file,
+          `submissions/${user.uid}/${id}/${file.name}`
+        );
+        fileUrl = uploadResult.url;
+        fileName = uploadResult.fileName;
+        console.log("File uploaded:", fileUrl);
+      }
 
-      console.log("Creating submission document...");
-      await addDoc(collection(db, "submissions"), submissionData);
-      console.log("Submission created successfully!");
-      router.push("/dashboard");
+      if (isEditing && submission) {
+        // Update existing submission
+        console.log("Updating submission document...");
+        const submissionRef = doc(db, "submissions", submission.id);
+        await updateDoc(submissionRef, {
+          ...(file && { fileUrl, fileName }),
+          comment,
+          submittedAt: Timestamp.now(),
+        });
+        console.log("Submission updated successfully!");
+        setIsEditing(false);
+        // Refresh submission data
+        const updatedDoc = await getDoc(submissionRef);
+        setSubmission({
+          id: updatedDoc.id,
+          ...updatedDoc.data()
+        } as Submission);
+        setFile(null);
+      } else {
+        // Create new submission
+        const submissionData: Omit<Submission, "id"> = {
+          taskId: id as string,
+          userId: user.uid,
+          userEmail: user.email || "",
+          userName: user.displayName || undefined,
+          fileUrl,
+          fileName,
+          comment,
+          reviewed: false,
+          submittedAt: Timestamp.now(),
+        };
+
+        console.log("Creating submission document...");
+        await addDoc(collection(db, "submissions"), submissionData);
+        console.log("Submission created successfully!");
+        router.push("/dashboard");
+      }
     } catch (err) {
       console.error("Error submitting:", err);
       setError(`Failed to submit: ${err}`);
@@ -131,6 +164,7 @@ export default function TaskDetailPage() {
 
   const isClosed = task.status === "closed";
   const isExpired = task.deadline && task.deadline.toDate() < new Date();
+  const canEdit = submission && !submission.reviewed && !isClosed && !isExpired;
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--background)' }}>
@@ -173,6 +207,7 @@ export default function TaskDetailPage() {
               )}
             </div>
           </div>
+
           {/* Task Description */}
           <div>
             <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
@@ -203,60 +238,151 @@ export default function TaskDetailPage() {
               </div>
             )}
           </div>
+
           {submission ? (
             <div className="border-t pt-6" style={{ borderColor: 'var(--surface-light)' }}>
-              <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--foreground)' }}>
-                Your Submission
-              </h2>
-              <div className="space-y-3 p-4 rounded-lg" style={{ background: 'var(--surface-light)' }}>
-                <div>
-                  <span className="font-semibold" style={{ color: 'var(--muted)' }}>File:</span>{" "}
-                  <a
-                    href={submission.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline"
-                    style={{ color: 'var(--primary)' }}
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold" style={{ color: 'var(--foreground)' }}>
+                  Your Submission
+                </h2>
+                {canEdit && !isEditing && (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
+                    style={{ background: 'var(--gradient-secondary)', color: 'var(--foreground)' }}
                   >
-                    {submission.fileName}
-                  </a>
-                </div>
-                {submission.comment && (
-                  <div>
-                    <span className="font-semibold" style={{ color: 'var(--muted)' }}>Comment:</span>{" "}
-                    <span style={{ color: 'var(--foreground)' }}>{submission.comment}</span>
-                  </div>
-                )}
-                <div>
-                  <span className="font-semibold" style={{ color: 'var(--muted)' }}>Submitted:</span>{" "}
-                  <span style={{ color: 'var(--foreground)' }}>
-                    {submission.submittedAt.toDate().toLocaleString()}
-                  </span>
-                </div>
-                {submission.reviewed ? (
-                  <div className="mt-4 p-4 border rounded-lg" 
-                       style={{ background: 'var(--success-light)', borderColor: 'var(--success)' }}>
-                    <p className="font-semibold flex items-center gap-2" style={{ color: 'var(--success)' }}>
-                      ✓ Reviewed
-                    </p>
-                    <p className="text-xl font-bold mt-2" style={{ color: 'var(--accent)' }}>
-                      Points Awarded: {submission.pointsAwarded}
-                    </p>
-                    {submission.reviewedAt && (
-                      <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-                        Reviewed on {submission.reviewedAt.toDate().toLocaleString()}
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="mt-4 p-4 border rounded-lg" 
-                       style={{ background: 'var(--warning-light)', borderColor: 'var(--warning)' }}>
-                    <p className="flex items-center gap-2" style={{ color: 'var(--warning)' }}>
-                      ⏳ Pending review
-                    </p>
-                  </div>
+                    ✏️ Edit Submission
+                  </button>
                 )}
               </div>
+
+              {isEditing ? (
+                <div>
+                  {error && (
+                    <div className="mb-4 p-3 rounded-lg border" 
+                         style={{ background: 'var(--danger-light)', borderColor: 'var(--danger)', color: 'var(--danger)' }}>
+                      {error}
+                    </div>
+                  )}
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                      <label className="block font-medium mb-2" style={{ color: 'var(--foreground)' }}>
+                        Replace File (optional)
+                      </label>
+                      <p className="text-sm mb-2" style={{ color: 'var(--muted)' }}>
+                        Current file: {submission.fileName}
+                      </p>
+                      <input
+                        type="file"
+                        onChange={(e) => setFile(e.target.files?.[0] || null)}
+                        className="w-full rounded-lg p-3 border transition-all focus:outline-none focus:ring-2"
+                        style={{ 
+                          background: 'var(--surface-light)', 
+                          borderColor: 'var(--surface-lighter)',
+                          color: 'var(--foreground)'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium mb-2" style={{ color: 'var(--foreground)' }}>
+                        Comment (optional)
+                      </label>
+                      <textarea
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        className="w-full rounded-lg p-3 border transition-all focus:outline-none focus:ring-2"
+                        style={{ 
+                          background: 'var(--surface-light)', 
+                          borderColor: 'var(--surface-lighter)',
+                          color: 'var(--foreground)'
+                        }}
+                        rows={4}
+                        placeholder="Add any notes about your submission..."
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="flex-1 py-3 rounded-lg font-semibold transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                        style={{ 
+                          background: submitting ? 'var(--surface-light)' : 'var(--gradient-primary)',
+                          color: 'var(--foreground)'
+                        }}
+                      >
+                        {submitting ? "Updating..." : "Update Submission"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditing(false);
+                          setFile(null);
+                          setComment(submission.comment || "");
+                          setError(null);
+                        }}
+                        disabled={submitting}
+                        className="px-6 py-3 rounded-lg font-semibold transition-all hover:scale-[1.02] disabled:opacity-50"
+                        style={{ 
+                          background: 'var(--surface-light)',
+                          color: 'var(--foreground)'
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                <div className="space-y-3 p-4 rounded-lg" style={{ background: 'var(--surface-light)' }}>
+                  <div>
+                    <span className="font-semibold" style={{ color: 'var(--muted)' }}>File:</span>{" "}
+                    <a
+                      href={submission.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                      style={{ color: 'var(--primary)' }}
+                    >
+                      {submission.fileName}
+                    </a>
+                  </div>
+                  {submission.comment && (
+                    <div>
+                      <span className="font-semibold" style={{ color: 'var(--muted)' }}>Comment:</span>{" "}
+                      <span style={{ color: 'var(--foreground)' }}>{submission.comment}</span>
+                    </div>
+                  )}
+                  <div>
+                    <span className="font-semibold" style={{ color: 'var(--muted)' }}>Submitted:</span>{" "}
+                    <span style={{ color: 'var(--foreground)' }}>
+                      {submission.submittedAt.toDate().toLocaleString()}
+                    </span>
+                  </div>
+                  {submission.reviewed ? (
+                    <div className="mt-4 p-4 border rounded-lg" 
+                         style={{ background: 'var(--success-light)', borderColor: 'var(--success)' }}>
+                      <p className="font-semibold flex items-center gap-2" style={{ color: 'var(--success)' }}>
+                        ✓ Reviewed
+                      </p>
+                      <p className="text-xl font-bold mt-2" style={{ color: 'var(--accent)' }}>
+                        Points Awarded: {submission.pointsAwarded}
+                      </p>
+                      {submission.reviewedAt && (
+                        <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+                          Reviewed on {submission.reviewedAt.toDate().toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-4 p-4 border rounded-lg" 
+                         style={{ background: 'var(--warning-light)', borderColor: 'var(--warning)' }}>
+                      <p className="flex items-center gap-2" style={{ color: 'var(--warning)' }}>
+                        ⏳ Pending review
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -314,7 +440,7 @@ export default function TaskDetailPage() {
                         color: 'var(--foreground)'
                       }}
                     >
-                      {submitting ? "Submitting..." : "Submit Task"}
+                      {submitting ? "Submitting..." : "🚀 Submit Task"}
                     </button>
                   </form>
                 </div>

@@ -29,7 +29,7 @@ export default function Navbar() {
               <div className="relative h-10 w-40">
                 <Image 
                   src="/assets/logo.png" 
-                  alt="EDC IIT Delhi Logo" 
+                  alt="eDC IIT Delhi Logo" 
                   fill
                   className="object-contain transition-transform group-hover:scale-105"
                   priority

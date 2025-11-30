@@ -48,7 +48,7 @@ export default function AdminLoginPage() {
             Admin Portal
           </h1>
           <p style={{ color: 'var(--muted)' }}>
-            EDC IIT Delhi - Campus Ambassador Platform
+            eDC IIT Delhi - Campus Ambassador Platform
           </p>
         </div>
 
