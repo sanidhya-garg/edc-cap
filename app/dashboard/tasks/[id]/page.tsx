@@ -164,7 +164,9 @@ export default function TaskDetailPage() {
 
   const isClosed = task.status === "closed";
   const isExpired = task.deadline && task.deadline.toDate() < new Date();
-  const canEdit = submission && !submission.reviewed && !isClosed && !isExpired;
+  // Can only submit if task is explicitly open AND not expired
+  const canSubmit = task.status === "open" && !isExpired;
+  const canEdit = submission && !submission.reviewed && canSubmit;
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--background)' }}>
@@ -187,22 +189,20 @@ export default function TaskDetailPage() {
               {task.title}
             </h1>
             <div className="flex items-center gap-3 flex-wrap">
-              {isClosed && (
+              {isClosed ? (
                 <span className="px-3 py-1 rounded-full text-sm font-semibold"
                       style={{ background: 'var(--surface-light)', color: 'var(--muted)' }}>
                   🔒 Closed
                 </span>
-              )}
-              {!isClosed && isExpired && (
+              ) : isExpired ? (
                 <span className="px-3 py-1 rounded-full text-sm font-semibold"
                       style={{ background: 'var(--danger)', color: 'var(--foreground)' }}>
                   ⏰ Expired
                 </span>
-              )}
-              {!isClosed && !isExpired && !submission && (
+              ) : (
                 <span className="px-3 py-1 rounded-full text-sm font-semibold animate-pulse"
                       style={{ background: 'var(--success)', color: 'var(--background)' }}>
-                  ✓ Available
+                  ✓ Open
                 </span>
               )}
             </div>
@@ -386,7 +386,7 @@ export default function TaskDetailPage() {
             </div>
           ) : (
             <>
-              {!isClosed && !isExpired ? (
+              {canSubmit ? (
                 <div className="border-t pt-6" style={{ borderColor: 'var(--surface-light)' }}>
                   <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--foreground)' }}>
                     Submit Your Work
@@ -449,10 +449,15 @@ export default function TaskDetailPage() {
                   <div className="text-5xl mb-3">
                     {isClosed ? "🔒" : "⏰"}
                   </div>
-                  <p className="text-lg" style={{ color: 'var(--muted)' }}>
+                  <p className="text-lg font-semibold mb-2" style={{ color: 'var(--muted)' }}>
+                    {isClosed 
+                      ? "This task is closed" 
+                      : "This task has expired"}
+                  </p>
+                  <p className="text-sm" style={{ color: 'var(--muted)' }}>
                     {isClosed
-                      ? "This task is closed and no longer accepting submissions."
-                      : "This task has expired."}
+                      ? "No longer accepting submissions."
+                      : "The deadline has passed. An admin needs to reopen this task with a new deadline to accept submissions."}
                   </p>
                 </div>
               )}

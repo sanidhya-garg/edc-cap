@@ -140,12 +140,13 @@ export default function CreateTaskPage() {
 
               <div>
                 <label className="block font-medium mb-2" style={{ color: 'var(--foreground)' }}>
-                  Deadline (optional)
+                  Deadline 
                 </label>
                 <input
                   type="datetime-local"
                   value={deadline}
                   onChange={(e) => setDeadline(e.target.value)}
+                  min={new Date().toISOString().slice(0, 16)}
                   className="w-full rounded-lg p-3 border transition-all focus:outline-none focus:ring-2"
                   style={{ 
                     background: 'var(--surface-light)', 
@@ -153,6 +154,9 @@ export default function CreateTaskPage() {
                     color: 'var(--foreground)'
                   }}
                 />
+                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+                  Deadline must be in the future
+                </p>
               </div>
             </div>
             <div className="flex gap-3 flex-wrap">

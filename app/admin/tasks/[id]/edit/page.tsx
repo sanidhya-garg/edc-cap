@@ -63,6 +63,25 @@ export default function EditTaskPage() {
     setError(null);
 
     try {
+      // Check if task was expired and is being reopened
+      const wasExpired = task.deadline && task.deadline.toDate() < new Date();
+      const isReopening = wasExpired && status === "open";
+      
+      // Require a new future deadline when reopening an expired task
+      if (isReopening) {
+        if (!deadline) {
+          setError("You must set a new deadline to reopen an expired task.");
+          setSubmitting(false);
+          return;
+        }
+        const newDeadlineDate = new Date(deadline);
+        if (newDeadlineDate <= new Date()) {
+          setError("The new deadline must be in the future.");
+          setSubmitting(false);
+          return;
+        }
+      }
+
       await updateDoc(doc(db, "tasks", id as string), {
         title,
         description,
@@ -215,19 +234,26 @@ export default function EditTaskPage() {
 
             <div>
               <label className="block font-medium mb-2" style={{ color: 'var(--foreground)' }}>
-                Deadline (optional)
+                Deadline {task && task.deadline && task.deadline.toDate() < new Date() && status === 'open' ? '*' : '(optional)'}
               </label>
               <input
                 type="datetime-local"
                 value={deadline}
                 onChange={(e) => setDeadline(e.target.value)}
+                min={new Date().toISOString().slice(0, 16)}
                 className="w-full rounded-lg p-3 border transition-all focus:outline-none focus:ring-2"
                 style={{ 
                   background: 'var(--surface-light)', 
                   borderColor: 'var(--surface-lighter)',
                   color: 'var(--foreground)'
                 }}
+                required={!!(task && task.deadline && task.deadline.toDate() < new Date() && status === 'open')}
               />
+              <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+                {task && task.deadline && task.deadline.toDate() < new Date() && status === 'open'
+                  ? "⚠️ Required: Set a new future deadline to reopen this expired task"
+                  : "Deadline must be in the future. Update this to reopen an expired task."}
+              </p>
             </div>
             <div className="flex gap-3 flex-wrap">
               <button
