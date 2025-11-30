@@ -9,6 +9,7 @@ export default function Navbar() {
   const { user, logout, loading } = useAuth();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
   const handleSignOut = async () => {
     await logout();
@@ -89,16 +90,57 @@ export default function Navbar() {
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                   Leaderboard
                 </button>
-                <button
-                  onClick={handleSignOut}
-                  className="px-4 py-2 text-sm font-medium border rounded-lg transition-all hover:scale-105"
-                  style={{ 
-                    background: 'var(--surface)',
-                    borderColor: 'var(--surface-light)',
-                    color: 'var(--foreground)'
-                  }}>
-                  Sign Out
-                </button>
+                {/* Profile Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-semibold transition-all hover:scale-105"
+                    style={{ 
+                      background: 'var(--gradient-primary)',
+                      color: 'var(--foreground)'
+                    }}>
+                    👤
+                  </button>
+                  {profileDropdownOpen && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-10" 
+                        onClick={() => setProfileDropdownOpen(false)}
+                      />
+                      <div 
+                        className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg border z-20 animate-fadeIn"
+                        style={{ 
+                          background: 'var(--surface)',
+                          borderColor: 'var(--surface-light)'
+                        }}>
+                        <div className="py-1">
+                          <button
+                            onClick={() => {
+                              router.push("/profile");
+                              setProfileDropdownOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm transition-colors"
+                            style={{ color: 'var(--foreground)' }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-light)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                            👤 Profile
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleSignOut();
+                              setProfileDropdownOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm transition-colors"
+                            style={{ color: 'var(--foreground)' }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-light)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                            🚪 Sign Out
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </>
             ) : (
               <>
@@ -185,12 +227,21 @@ export default function Navbar() {
                   </button>
                   <button
                     onClick={() => {
+                      router.push("/profile");
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full px-4 py-2 text-sm font-medium rounded-lg text-left"
+                    style={{ background: 'var(--surface-light)', color: 'var(--foreground)' }}>
+                    👤 Profile
+                  </button>
+                  <button
+                    onClick={() => {
                       handleSignOut();
                       setMobileMenuOpen(false);
                     }}
                     className="w-full px-4 py-2 text-sm font-medium border rounded-lg"
                     style={{ borderColor: 'var(--surface-light)', color: 'var(--foreground)' }}>
-                    Sign Out
+                    🚪 Sign Out
                   </button>
                 </>
               ) : (

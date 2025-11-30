@@ -6,6 +6,10 @@ export interface UserProfile {
   uid: string;
   email: string;
   displayName?: string;
+  phoneNumber?: string;
+  college?: string;
+  graduationYear?: number;
+  profileCompleted?: boolean;
   role: UserRole;
   points: number;
   createdAt: Timestamp;

@@ -440,7 +440,7 @@ export default function Home() {
                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--muted)'}>
                     <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
-                    Leaderboard 🏆
+                    Leaderboard 
                   </a>
                 </li>
               </ul>
@@ -480,7 +480,7 @@ export default function Home() {
                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--muted)'}>
                     <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
-                    Dashboard 📊
+                    Dashboard 
                   </a>
                 </li>
               </ul>
