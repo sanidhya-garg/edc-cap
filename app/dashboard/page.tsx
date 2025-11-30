@@ -83,10 +83,27 @@ export default function DashboardPage() {
   const [userRank, setUserRank] = useState<number>(0);
   const [filter, setFilter] = useState<'unattempted' | 'completed' | 'all'>('unattempted');
   const [showLevelsModal, setShowLevelsModal] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
+
+  // Auto-rotate carousel
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentCarouselIndex((prev) => (prev + 1) % 2); // 2 items in carousel
+    }, 5000); // Rotate every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!user) {
       router.replace("/auth/login");
+      return;
+    }
+
+    // Check if profile is completed
+    if (userProfile && !userProfile.profileCompleted) {
+      router.replace("/complete-profile");
       return;
     }
 
@@ -132,7 +149,7 @@ export default function DashboardPage() {
     };
 
     fetchData();
-  }, [user, router]);
+  }, [user, userProfile, router]);
 
   if (!user || !userProfile) return null;
 
@@ -175,10 +192,11 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--background)' }}>
       {/* Header */}
-      <div className="border-b" style={{ borderColor: 'var(--surface-light)', background: 'var(--surface)' }}>
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
-            <div>
+      <div className="border-b sticky top-0 z-50" style={{ borderColor: 'var(--surface-light)', background: 'var(--surface)' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          {/* Desktop Layout */}
+          <div className="hidden md:flex justify-between items-center gap-6">
+            <div className="flex-shrink-0">
               <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>
                 🎯 Ambassador Hub
               </h1>
@@ -186,110 +204,370 @@ export default function DashboardPage() {
                 Welcome back, {userProfile.displayName || user.email}!
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <Link
-                href="/leaderboard"
-                className="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
-                style={{ background: 'var(--gradient-primary)', color: 'var(--foreground)' }}
+            
+            {/* Gamified Rank Card */}
+            <Link
+              href="/leaderboard"
+              className="flex items-center gap-3 px-5 py-2 rounded-full transition-all hover:scale-105 cursor-pointer border-2 flex-shrink-0"
+              style={{ 
+                background: 'var(--gradient-primary)',
+                borderColor: userRank <= 3 ? '#FFD700' : 'transparent',
+                boxShadow: userRank <= 3 ? '0 0 20px rgba(255, 215, 0, 0.3)' : 'none'
+              }}
+            >
+              <div className="text-2xl">
+                {userRank === 1 ? '🥇' : userRank === 2 ? '🥈' : userRank === 3 ? '🥉' : '🏅'}
+              </div>
+              <div className="flex items-center gap-4">
+                <div>
+                  <div className="text-[10px] font-medium opacity-80" style={{ color: 'var(--foreground)' }}>
+                    Your Rank
+                  </div>
+                  <div className="text-lg font-bold leading-tight" style={{ color: 'var(--foreground)' }}>
+                    #{userRank || '-'}
+                  </div>
+                </div>
+                <div className="border-l-2 border-white/20 pl-4">
+                  <div className="text-[10px] font-medium opacity-80" style={{ color: 'var(--foreground)' }}>
+                    Points
+                  </div>
+                  <div className="text-lg font-bold leading-tight" style={{ color: 'var(--foreground)' }}>
+                    {userPoints}
+                  </div>
+                </div>
+              </div>
+            </Link>
+            
+            {/* Profile Dropdown */}
+            <div className="relative flex-shrink-0">
+              <button
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                className="w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110 border-2"
+                style={{ background: 'var(--gradient-primary)', color: 'var(--foreground)', borderColor: 'transparent' }}
               >
-                🏆 Leaderboard
-              </Link>
-              <button 
-                className="px-4 py-2 rounded-lg font-medium transition-all hover:scale-105"
-                style={{ background: 'var(--surface-light)', color: 'var(--foreground)' }}
-                onClick={() => logout()}
-              >
-                Sign out
+                👤
               </button>
+              
+              {profileDropdownOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40"
+                    onClick={() => setProfileDropdownOpen(false)}
+                  />
+                  <div 
+                    className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg overflow-hidden z-50"
+                    style={{ background: 'var(--surface)', border: '1px solid var(--surface-light)' }}
+                  >
+                    <Link
+                      href="/profile"
+                      className="block px-4 py-3 transition-all hover:bg-opacity-80"
+                      style={{ color: 'var(--foreground)' }}
+                      onClick={() => setProfileDropdownOpen(false)}
+                    >
+                      Profile
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        logout();
+                      }}
+                      className="w-full text-left px-4 py-3 transition-all hover:bg-opacity-80"
+                      style={{ color: 'var(--danger)' }}
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
+          </div>
+
+          {/* Mobile Layout */}
+          <div className="md:hidden space-y-3">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>
+                  🎯 Ambassador Hub
+                </h1>
+                <p style={{ color: 'var(--muted)' }} className="text-xs mt-0.5">
+                  Welcome back!
+                </p>
+              </div>
+              
+              {/* Profile Dropdown - Mobile */}
+              <div className="relative">
+                <button
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 border-2"
+                  style={{ background: 'var(--gradient-primary)', color: 'var(--foreground)', borderColor: 'transparent' }}
+                >
+                  👤
+                </button>
+                
+                {profileDropdownOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40"
+                      onClick={() => setProfileDropdownOpen(false)}
+                    />
+                    <div 
+                      className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg overflow-hidden z-50"
+                      style={{ background: 'var(--surface)', border: '1px solid var(--surface-light)' }}
+                    >
+                      <Link
+                        href="/profile"
+                        className="block px-4 py-3 transition-all hover:bg-opacity-80"
+                        style={{ color: 'var(--foreground)' }}
+                        onClick={() => setProfileDropdownOpen(false)}
+                      >
+                        Profile
+                      </Link>
+                      <button
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          logout();
+                        }}
+                        className="w-full text-left px-4 py-3 transition-all hover:bg-opacity-80"
+                        style={{ color: 'var(--danger)' }}
+                      >
+                        Sign Out
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            {/* Rank Card - Mobile (Full Width) */}
+            <Link
+              href="/leaderboard"
+              className="flex items-center justify-between px-4 py-2.5 rounded-full transition-all active:scale-95 border-2 w-full"
+              style={{ 
+                background: 'var(--gradient-primary)',
+                borderColor: userRank <= 3 ? '#FFD700' : 'transparent',
+                boxShadow: userRank <= 3 ? '0 0 20px rgba(255, 215, 0, 0.3)' : 'none'
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="text-2xl">
+                  {userRank === 1 ? '🥇' : userRank === 2 ? '🥈' : userRank === 3 ? '🥉' : '🏅'}
+                </div>
+                <div>
+                  <div className="text-[10px] font-medium opacity-80" style={{ color: 'var(--foreground)' }}>
+                    Your Rank
+                  </div>
+                  <div className="text-lg font-bold leading-tight" style={{ color: 'var(--foreground)' }}>
+                    #{userRank || '-'}
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] font-medium opacity-80" style={{ color: 'var(--foreground)' }}>
+                  Points
+                </div>
+                <div className="text-lg font-bold leading-tight" style={{ color: 'var(--foreground)' }}>
+                  {userPoints}
+                </div>
+              </div>
+            </Link>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Level Progress Bar */}
-        <div 
-          className="glass-card p-6 cursor-pointer transition-all hover:scale-[1.01] animate-fadeIn"
-          onClick={() => setShowLevelsModal(true)}
-          style={{ position: 'relative', overflow: 'hidden' }}
-        >
-          <div className="absolute inset-0 opacity-10"
-               style={{ background: `linear-gradient(135deg, ${currentLevel.color} 0%, transparent 100%)` }}></div>
-          
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <span className="text-4xl">{currentLevel.icon}</span>
-                <div>
-                  <h3 className="text-xl font-bold" style={{ color: currentLevel.color }}>
-                    {currentLevel.level} Tier
-                  </h3>
-                  <p className="text-sm" style={{ color: 'var(--muted)' }}>
-                    {currentLevel.criteria}
-                  </p>
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+        {/* Carousel Container */}
+        <div className="relative overflow-hidden rounded-2xl" style={{ minHeight: '280px' }}>
+          {/* Carousel Track */}
+          <div 
+            className="flex transition-transform duration-700 ease-in-out"
+            style={{ transform: `translateX(-${currentCarouselIndex * 100}%)` }}
+          >
+            {/* Slide 1: Level Progress */}
+            <div className="w-full flex-shrink-0 px-1">
+              <div 
+                className="glass-card p-6 sm:p-8 cursor-pointer transition-all hover:scale-[1.01] h-full"
+                onClick={() => setShowLevelsModal(true)}
+                style={{ position: 'relative', overflow: 'hidden' }}
+              >
+                <div className="absolute inset-0 opacity-10"
+                     style={{ background: `linear-gradient(135deg, ${currentLevel.color} 0%, transparent 100%)` }}></div>
+                
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-4">
+                      <div className="text-5xl sm:text-6xl">{currentLevel.icon}</div>
+                      <div>
+                        <h3 className="text-2xl sm:text-3xl font-bold" style={{ color: currentLevel.color }}>
+                          {currentLevel.level} Tier
+                        </h3>
+                        <p className="text-sm sm:text-base mt-1" style={{ color: 'var(--muted)' }}>
+                          {currentLevel.criteria}
+                        </p>
+                      </div>
+                    </div>
+                    {nextLevel && (
+                      <div className="text-right hidden sm:block">
+                        <p className="text-sm" style={{ color: 'var(--muted)' }}>Next Tier</p>
+                        <p className="text-xl font-bold" style={{ color: nextLevel.color }}>
+                          {nextLevel.level}
+                        </p>
+                        <p className="text-sm font-semibold mt-1" style={{ color: 'var(--foreground)' }}>
+                          {nextLevel.minPoints - userPoints} pts to go
+                        </p>
+                      </div>
+                    )}
+                    {!nextLevel && (
+                      <div className="text-right hidden sm:block">
+                        <p className="text-xl font-bold" style={{ color: currentLevel.color }}>
+                          🏆 Max Tier
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <div className="h-4 rounded-full overflow-hidden" style={{ background: 'var(--surface-light)' }}>
+                      <div 
+                        className="h-full transition-all duration-500 rounded-full"
+                        style={{ 
+                          width: `${progressToNext}%`,
+                          background: `linear-gradient(90deg, ${currentLevel.color}, ${nextLevel?.color || currentLevel.color})`
+                        }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between items-center mt-3">
+                      <div className="text-center">
+                        <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Current</p>
+                        <span className="text-sm font-bold" style={{ color: currentLevel.color }}>
+                          {currentLevel.minPoints} pts
+                        </span>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Progress</p>
+                        <span className="text-base font-bold" style={{ color: 'var(--foreground)' }}>
+                          {userPoints} / {nextLevel ? nextLevel.minPoints : currentLevel.maxPoints}
+                        </span>
+                      </div>
+                      {nextLevel && (
+                        <div className="text-center">
+                          <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Next</p>
+                          <span className="text-sm font-bold" style={{ color: nextLevel.color }}>
+                            {nextLevel.minPoints} pts
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 text-center">
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                      💡 Click to view all tiers and rewards
+                    </p>
+                  </div>
                 </div>
               </div>
-              {nextLevel && (
-                <div className="text-right">
-                  <p className="text-sm" style={{ color: 'var(--muted)' }}>Next: {nextLevel.level}</p>
-                  <p className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>
-                    {nextLevel.minPoints - userPoints} points to go
-                  </p>
-                </div>
-              )}
-              {!nextLevel && (
-                <div className="text-right">
-                  <p className="text-lg font-bold" style={{ color: currentLevel.color }}>
-                    🏆 Max Level Reached!
-                  </p>
-                </div>
-              )}
             </div>
 
-            {/* Progress Bar */}
-            <div className="relative">
-              <div className="h-3 rounded-full overflow-hidden" style={{ background: 'var(--surface-light)' }}>
+            {/* Slide 2: CAP Store */}
+            <div className="w-full flex-shrink-0 px-1">
+              <Link href="/store">
                 <div 
-                  className="h-full transition-all duration-500 rounded-full"
+                  className="glass-card p-6 sm:p-8 cursor-pointer transition-all hover:scale-[1.01] relative overflow-hidden group h-full"
                   style={{ 
-                    width: `${progressToNext}%`,
-                    background: `linear-gradient(90deg, ${currentLevel.color}, ${nextLevel?.color || currentLevel.color})`
+                    background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)',
+                    border: '2px solid rgba(99, 102, 241, 0.3)'
                   }}
-                ></div>
+                >
+                  <div 
+                    className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500"
+                    style={{ background: 'var(--gradient-primary)' }}
+                  ></div>
+                  
+                  <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="flex-1 text-center md:text-left">
+                      <div className="flex items-center justify-center md:justify-start gap-3 mb-3">
+                        <span className="text-4xl sm:text-5xl">🏪</span>
+                        <h2 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--foreground)' }}>
+                          NO CAP Store
+                        </h2>
+                      <span className="px-3 py-1 rounded-full text-xs font-bold animate-pulse"
+                            style={{ background: 'var(--gradient-primary)', color: 'var(--foreground)' }}>
+                        COMING SOON
+                      </span>
+                    </div>
+                    <p className="text-sm sm:text-base mb-4" style={{ color: 'var(--muted)' }}>
+                      Redeem your hard-earned points for exclusive rewards, merchandise, and amazing perks!
+                    </p>
+                    <div className="flex flex-wrap gap-3 justify-center md:justify-start">
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'var(--surface)' }}>
+                        <span className="text-lg">🎁</span>
+                        <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>Exclusive Merch</span>
+                      </div>
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'var(--surface)' }}>
+                        <span className="text-lg">🎟️</span>
+                        <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>Event Tickets</span>
+                      </div>
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'var(--surface)' }}>
+                        <span className="text-lg">💎</span>
+                        <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>Premium Rewards</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="relative flex-shrink-0 hidden md:block">
+                    <div className="text-8xl sm:text-9xl opacity-90 transform group-hover:scale-110 transition-transform duration-500">
+                      🎁
+                    </div>
+                    <div className="absolute -top-2 -right-2 text-3xl animate-bounce">✨</div>
+                    <div className="absolute -bottom-2 -left-2 text-3xl animate-bounce delay-100">⭐</div>
+                  </div>
+                </div>
+                
+                <div className="relative z-10 mt-4 text-center">
+                  <p className="text-xs font-semibold" style={{ color: 'var(--primary)' }}>
+                    💡 Click to learn more • Your Points: {userPoints}
+                  </p>
+                </div>
               </div>
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-xs font-semibold" style={{ color: currentLevel.color }}>
-                  {currentLevel.minPoints} pts
-                </span>
-                <span className="text-xs" style={{ color: 'var(--muted)' }}>
-                  {userPoints} / {nextLevel ? nextLevel.minPoints : currentLevel.maxPoints} pts
-                </span>
-                {nextLevel && (
-                  <span className="text-xs font-semibold" style={{ color: nextLevel.color }}>
-                    {nextLevel.minPoints} pts
-                  </span>
-                )}
-              </div>
+              </Link>
             </div>
+          </div>
 
-            <p className="text-xs text-center mt-3" style={{ color: 'var(--muted)' }}>
-              💡 Click to view all tiers and rewards
-            </p>
+          {/* Carousel Indicators */}
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 z-20">
+            <button
+              onClick={() => setCurrentCarouselIndex(0)}
+              className="w-2 h-2 rounded-full transition-all"
+              style={{ 
+                background: currentCarouselIndex === 0 ? 'var(--primary)' : 'var(--surface-light)',
+                width: currentCarouselIndex === 0 ? '24px' : '8px'
+              }}
+              aria-label="Slide 1"
+            />
+            <button
+              onClick={() => setCurrentCarouselIndex(1)}
+              className="w-2 h-2 rounded-full transition-all"
+              style={{ 
+                background: currentCarouselIndex === 1 ? 'var(--primary)' : 'var(--surface-light)',
+                width: currentCarouselIndex === 1 ? '24px' : '8px'
+              }}
+              aria-label="Slide 2"
+            />
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-fadeIn">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 animate-fadeIn">
           {/* Total Points */}
           <div className="stat-card">
             <div className="flex items-center justify-between mb-2">
-              <span style={{ color: 'var(--muted)' }} className="text-sm font-medium">Total Points</span>
-              <span className="text-2xl">⭐</span>
+              <span style={{ color: 'var(--muted)' }} className="text-xs sm:text-sm font-medium">Total Points</span>
+              <span className="text-xl sm:text-2xl">⭐</span>
             </div>
-            <div className="text-3xl font-bold" style={{ color: 'var(--primary)' }}>
+            <div className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--primary)' }}>
               {userProfile.points || 0}
             </div>
-            <div className="text-xs mt-1" style={{ color: 'var(--success)' }}>
+            <div className="text-[10px] sm:text-xs mt-1" style={{ color: 'var(--success)' }}>
               +{submissions.filter(s => s.reviewed && s.pointsAwarded).reduce((acc, s) => acc + (s.pointsAwarded || 0), 0)} earned
             </div>
           </div>
@@ -297,13 +575,13 @@ export default function DashboardPage() {
           {/* Rank */}
           <div className="stat-card">
             <div className="flex items-center justify-between mb-2">
-              <span style={{ color: 'var(--muted)' }} className="text-sm font-medium">Your Rank</span>
-              <span className="text-2xl">🏅</span>
+              <span style={{ color: 'var(--muted)' }} className="text-xs sm:text-sm font-medium">Your Rank</span>
+              <span className="text-xl sm:text-2xl">🏅</span>
             </div>
-            <div className="text-3xl font-bold" style={{ color: 'var(--accent)' }}>
+            <div className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--accent)' }}>
               #{userRank || '-'}
             </div>
-            <div className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+            <div className="text-[10px] sm:text-xs mt-1" style={{ color: 'var(--muted)' }}>
               Global ranking
             </div>
           </div>
@@ -311,10 +589,10 @@ export default function DashboardPage() {
           {/* Completed Tasks */}
           <div className="stat-card">
             <div className="flex items-center justify-between mb-2">
-              <span style={{ color: 'var(--muted)' }} className="text-sm font-medium">Completed</span>
-              <span className="text-2xl">✅</span>
+              <span style={{ color: 'var(--muted)' }} className="text-xs sm:text-sm font-medium">Completed</span>
+              <span className="text-xl sm:text-2xl">✅</span>
             </div>
-            <div className="text-3xl font-bold" style={{ color: 'var(--success)' }}>
+            <div className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--success)' }}>
               {completedTasks}/{totalTasks}
             </div>
             <div className="progress-bar mt-2">
@@ -325,10 +603,10 @@ export default function DashboardPage() {
           {/* Active Tasks */}
           <div className="stat-card">
             <div className="flex items-center justify-between mb-2">
-              <span style={{ color: 'var(--muted)' }} className="text-sm font-medium">Active Tasks</span>
-              <span className="text-2xl">🎯</span>
+              <span style={{ color: 'var(--muted)' }} className="text-xs sm:text-sm font-medium">Active Tasks</span>
+              <span className="text-xl sm:text-2xl">🎯</span>
             </div>
-            <div className="text-3xl font-bold" style={{ color: 'var(--warning)' }}>
+            <div className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--warning)' }}>
               {tasks.filter(t => {
                 const isOpen = t.status === 'open';
                 const notExpired = !t.deadline || t.deadline.toDate() >= new Date();
@@ -337,28 +615,28 @@ export default function DashboardPage() {
                 return isOpen && notExpired && notCompleted;
               }).length}
             </div>
-            <div className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+            <div className="text-[10px] sm:text-xs mt-1" style={{ color: 'var(--muted)' }}>
               Available now
             </div>
           </div>
         </div>
 
         {/* Tasks Section */}
-        <div className="glass-card p-6 animate-slideIn">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>
+        <div className="glass-card p-4 sm:p-6 animate-slideIn">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--foreground)' }}>
               📋 Available Tasks
             </h2>
-            <div className="text-sm" style={{ color: 'var(--muted)' }}>
+            <div className="text-xs sm:text-sm" style={{ color: 'var(--muted)' }}>
               {filteredTasks.length} tasks
             </div>
           </div>
 
           {/* Filter Tabs */}
-          <div className="flex gap-3 mb-6 flex-wrap">
+          <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-6 flex-wrap">
             <button
               onClick={() => setFilter('unattempted')}
-              className="px-4 py-2 rounded-lg font-medium transition-all"
+              className="px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all"
               style={{
                 background: filter === 'unattempted' ? 'var(--gradient-primary)' : 'var(--surface)',
                 color: 'var(--foreground)',
@@ -369,7 +647,7 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setFilter('completed')}
-              className="px-4 py-2 rounded-lg font-medium transition-all"
+              className="px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all"
               style={{
                 background: filter === 'completed' ? 'var(--gradient-primary)' : 'var(--surface)',
                 color: 'var(--foreground)',
@@ -380,7 +658,7 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setFilter('all')}
-              className="px-4 py-2 rounded-lg font-medium transition-all"
+              className="px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all"
               style={{
                 background: filter === 'all' ? 'var(--gradient-primary)' : 'var(--surface)',
                 color: 'var(--foreground)',
@@ -420,16 +698,16 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={task.id}
-                    className="p-5 rounded-xl transition-all hover:scale-[1.02] border"
+                    className="p-4 sm:p-5 rounded-xl transition-all hover:scale-[1.02] border"
                     style={{ 
                       background: submitted ? 'var(--surface)' : 'var(--surface-light)',
                       borderColor: submitted ? 'var(--success)' : 'var(--surface-light)'
                     }}
                   >
-                    <div className="flex justify-between items-start gap-4">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 flex-wrap mb-2">
-                          <h3 className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>
+                        <div className="flex items-center gap-2 sm:gap-3 flex-wrap mb-2">
+                          <h3 className="text-lg sm:text-xl font-bold" style={{ color: 'var(--foreground)' }}>
                             {task.title}
                           </h3>
                           
@@ -459,28 +737,28 @@ export default function DashboardPage() {
                           )}
                         </div>
 
-                        <p style={{ color: 'var(--muted)' }} className="text-sm line-clamp-2 mb-3">
+                        <p style={{ color: 'var(--muted)' }} className="text-xs sm:text-sm line-clamp-2 mb-2 sm:mb-3">
                           {task.description}
                         </p>
 
-                        <div className="flex items-center gap-4 flex-wrap text-sm">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">💎</span>
+                        <div className="flex items-center gap-3 sm:gap-4 flex-wrap text-xs sm:text-sm">
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            <span className="text-base sm:text-lg">💎</span>
                             <span style={{ color: 'var(--primary)' }} className="font-bold">
                               {task.maxPoints} pts
                             </span>
                           </div>
                           {task.deadline && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg">📅</span>
+                            <div className="flex items-center gap-1 sm:gap-2">
+                              <span className="text-base sm:text-lg">📅</span>
                               <span style={{ color: 'var(--muted)' }}>
                                 {task.deadline.toDate().toLocaleDateString()}
                               </span>
                             </div>
                           )}
                           {submitted && points !== undefined && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg">⭐</span>
+                            <div className="flex items-center gap-1 sm:gap-2">
+                              <span className="text-base sm:text-lg">⭐</span>
                               <span style={{ color: 'var(--success)' }} className="font-bold">
                                 +{points} earned
                               </span>
@@ -489,11 +767,11 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-row sm:flex-col gap-2 w-full sm:w-auto">
                         {!isClosed && !isExpired && !submitted && (
                           <Link
                             href={`/dashboard/tasks/${task.id}`}
-                            className="px-6 py-3 rounded-lg text-center font-medium transition-all hover:scale-105 whitespace-nowrap"
+                            className="px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-center text-sm font-medium transition-all hover:scale-105 whitespace-nowrap flex-1 sm:flex-none"
                             style={{ background: 'var(--gradient-primary)', color: 'var(--foreground)' }}
                           >
                             Start Task →
@@ -502,14 +780,14 @@ export default function DashboardPage() {
                         {submitted && (
                           <Link
                             href={`/dashboard/tasks/${task.id}`}
-                            className="px-6 py-3 rounded-lg text-center font-medium border transition-all hover:scale-105 whitespace-nowrap"
+                            className="px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-center text-sm font-medium border transition-all hover:scale-105 whitespace-nowrap flex-1 sm:flex-none"
                             style={{ borderColor: 'var(--success)', color: 'var(--success)' }}
                           >
                             View Details
                           </Link>
                         )}
                         {(isClosed || isExpired) && !submitted && (
-                          <div className="px-6 py-3 rounded-lg text-center font-medium whitespace-nowrap"
+                          <div className="px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-center text-sm font-medium whitespace-nowrap flex-1 sm:flex-none"
                                style={{ background: 'var(--surface)', color: 'var(--muted)' }}>
                             Unavailable
                           </div>
