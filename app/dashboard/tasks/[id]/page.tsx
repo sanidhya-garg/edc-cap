@@ -10,7 +10,7 @@ import { Task, Submission } from "@/lib/types";
 
 export default function TaskDetailPage() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const router = useRouter();
   const [task, setTask] = useState<Task | null>(null);
   const [submission, setSubmission] = useState<Submission | null>(null);
@@ -116,7 +116,7 @@ export default function TaskDetailPage() {
           taskId: id as string,
           userId: user.uid,
           userEmail: user.email || "",
-          userName: user.displayName || undefined,
+          ...(userProfile?.displayName && { userName: userProfile.displayName }),
           fileUrl,
           fileName,
           comment,
