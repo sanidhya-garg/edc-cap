@@ -6,7 +6,7 @@ import { useAuth } from "@/app/providers/AuthProvider";
 import { db } from "@/lib/firebase";
 
 export default function CompleteProfilePage() {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, refreshProfile } = useAuth();
   const router = useRouter();
   const [displayName, setDisplayName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -72,6 +72,8 @@ export default function CompleteProfilePage() {
         updatedAt: Timestamp.now(),
       });
 
+      // Refresh the profile in AuthProvider before navigating
+      await refreshProfile();
       router.push("/dashboard");
     } catch (err) {
       console.error("Error updating profile:", err);

@@ -38,11 +38,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (docSnap.exists()) {
       setUserProfile(docSnap.data() as UserProfile);
     } else {
-      // Create default user profile
+      // Create default user profile - only include displayName if it exists
       const profile: UserProfile = {
         uid,
         email: authUser?.email || "",
-        displayName: authUser?.displayName || undefined,
+        ...(authUser?.displayName && { displayName: authUser.displayName }),
         role: "user",
         points: 0,
         createdAt: Timestamp.now(),
