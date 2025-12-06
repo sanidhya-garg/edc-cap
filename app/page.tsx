@@ -296,36 +296,83 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20" style={{ background: 'var(--surface)' }}>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="glass-card p-12 relative overflow-hidden">
-            {/* Background gradient */}
-            <div className="absolute inset-0 opacity-10"
-                 style={{ background: 'var(--gradient-primary)' }}></div>
+      <section className="relative py-16 overflow-hidden">
+        {/* Subtle Background Element */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-4xl rounded-full blur-3xl opacity-10"
+               style={{ background: 'var(--gradient-primary)' }}></div>
+        </div>
+        
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="inline-block mb-4 px-4 py-2 rounded-full"
+               style={{ background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+            <span className="text-xs font-semibold" style={{ color: 'var(--primary)' }}>
+              🚀 Start Your Journey
+            </span>
+          </div>
+          
+          <h2 className="text-3xl md:text-4xl font-bold mb-4" style={{ color: 'var(--foreground)' }}>
+            Ready to Make an Impact? 
+          </h2>
+          
+          <p className="text-base md:text-lg max-w-2xl mx-auto mb-8" style={{ color: 'var(--muted)' }}>
+            Join hundreds of ambassadors shaping the entrepreneurial landscape and earn exclusive rewards.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-10">
+            <a
+              href="/auth/signup"
+              className="group relative px-6 py-3 rounded-xl font-bold text-base transition-all hover:scale-105 shadow-lg overflow-hidden w-full sm:w-auto"
+              style={{ background: 'var(--gradient-primary)', color: 'var(--foreground)' }}
+            >
+              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+              <span className="relative flex items-center justify-center gap-2">
+                <span>✨</span>
+                <span>Get Started Now</span>
+                <span className="group-hover:translate-x-1 transition-transform">→</span>
+              </span>
+            </a>
             
-            <div className="relative">
-              <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: 'var(--foreground)' }}>
-                Ready to Make an Impact? 🎯
-              </h2>
-              <p className="text-lg max-w-2xl mx-auto mb-8" style={{ color: 'var(--muted)' }}>
-                Join hundreds of ambassadors already shaping the entrepreneurial landscape. Start your journey today!
-              </p>
-              <div className="flex gap-4 justify-center flex-wrap">
-                <a
-                  href="/auth/signup"
-                  className="px-8 py-4 rounded-lg font-bold text-lg transition-all hover:scale-105 shadow-lg"
-                  style={{ background: 'var(--gradient-primary)', color: 'var(--foreground)' }}
-                >
-                  ✨ Get Started Now
-                </a>
-                <a
-                  href="/auth/login"
-                  className="px-8 py-4 rounded-lg font-semibold text-lg border transition-all hover:scale-105"
-                  style={{ background: 'var(--surface)', borderColor: 'var(--surface-light)', color: 'var(--foreground)' }}
-                >
-                  Already a member? Sign In
-                </a>
-              </div>
+            <a
+              href="/auth/login"
+              className="group px-6 py-3 rounded-xl font-semibold text-base border transition-all hover:scale-105 w-full sm:w-auto"
+              style={{ 
+                background: 'transparent', 
+                borderColor: 'var(--surface-lighter)', 
+                color: 'var(--foreground)' 
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--primary)';
+                e.currentTarget.style.background = 'rgba(99, 102, 241, 0.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--surface-lighter)';
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <span>Already a member?</span>
+                <span className="font-bold" style={{ color: 'var(--primary)' }}>Sign In</span>
+              </span>
+            </a>
+          </div>
+          
+          {/* Trust indicators */}
+          <div className="flex flex-wrap items-center justify-center gap-8 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🎓</span>
+              <span className="font-semibold" style={{ color: 'var(--foreground)' }}>500+</span>
+              <span style={{ color: 'var(--muted)' }}>Ambassadors</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🏆</span>
+              <span className="font-semibold" style={{ color: 'var(--foreground)' }}>100+</span>
+              <span style={{ color: 'var(--muted)' }}>Colleges</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🌟</span>
+              <span className="font-semibold" style={{ color: 'var(--foreground)' }}>50+</span>
+              <span style={{ color: 'var(--muted)' }}>Events</span>
             </div>
           </div>
         </div>
