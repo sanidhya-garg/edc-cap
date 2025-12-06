@@ -199,7 +199,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-6 flex-shrink-0">
               <div>
                 <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>
-                  🎯 Ambassador Hub
+                  Ambassador Hub
                 </h1>
                 <p style={{ color: 'var(--muted)' }} className="text-sm mt-1">
                   Welcome back, {userProfile.displayName || user.email}!
@@ -310,7 +310,7 @@ export default function DashboardPage() {
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>
-                  🎯 Ambassador Hub
+                  Ambassador Hub
                 </h1>
                 <p style={{ color: 'var(--muted)' }} className="text-xs mt-0.5">
                   Welcome back!
