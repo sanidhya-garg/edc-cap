@@ -108,7 +108,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: 'var(--foreground)' }}>
-              Why Join Us? 🌟
+              Why Join Us? 
             </h2>
             <p className="text-lg max-w-2xl mx-auto" style={{ color: 'var(--muted)' }}>
               Get exclusive benefits and opportunities that will accelerate your journey
@@ -183,7 +183,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: 'var(--foreground)' }}>
-              What You&apos;ll Do 🚀
+              What You&apos;ll Do
             </h2>
             <p className="text-lg max-w-2xl mx-auto" style={{ color: 'var(--muted)' }}>
               Your responsibilities as a Campus Ambassador
@@ -255,11 +255,11 @@ export default function Home() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20">
+      <section id="faq" className="py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: 'var(--foreground)' }}>
-              Frequently Asked Questions 💬
+              Frequently Asked Questions 
             </h2>
             <p className="text-lg" style={{ color: 'var(--muted)' }}>
               Everything you need to know about the program
@@ -411,7 +411,7 @@ export default function Home() {
             {/* Quick Links */}
             <div className="md:col-span-2">
               <h4 className="text-lg font-bold mb-5 flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
-                <span className="text-2xl">🔗</span>
+                <span className="text-2xl"></span>
                 <span>Quick Links</span>
               </h4>
               <ul className="space-y-3">
@@ -461,7 +461,7 @@ export default function Home() {
             {/* Get Started */}
             <div className="md:col-span-2">
               <h4 className="text-lg font-bold mb-5 flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
-                <span className="text-2xl">🚀</span>
+                <span className="text-2xl"></span>
                 <span>Get Started</span>
               </h4>
               <ul className="space-y-3">
@@ -501,29 +501,22 @@ export default function Home() {
             {/* Contact/Support */}
             <div className="md:col-span-3">
               <h4 className="text-lg font-bold mb-5 flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
-                <span className="text-2xl">📧</span>
+                <span className="text-2xl"></span>
                 <span>Get in Touch</span>
               </h4>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
-                  <span className="text-xl">🏛️</span>
+                  <span className="text-xl"></span>
                   <div>
                     <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>IIT Delhi</p>
                     <p className="text-xs" style={{ color: 'var(--muted)' }}>Hauz Khas, New Delhi</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <span className="text-xl">✉️</span>
+                  <span className="text-xl"></span>
                   <div>
                     <p className="text-sm" style={{ color: 'var(--muted)' }}>support@edciitd.com</p>
                   </div>
-                </div>
-                <div className="p-3 rounded-lg border" 
-                     style={{ background: 'rgba(99, 102, 241, 0.05)', borderColor: 'var(--primary)' }}>
-                  <p className="text-xs font-semibold mb-1" style={{ color: 'var(--primary)' }}>💡 Need Help?</p>
-                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                    Check our <a href="#faq" className="underline hover:no-underline" style={{ color: 'var(--primary)' }}>FAQ</a> section
-                  </p>
                 </div>
               </div>
             </div>
