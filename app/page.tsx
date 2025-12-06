@@ -48,7 +48,7 @@ export default function Home() {
             <div className="inline-block mb-6 px-4 py-2 rounded-full border animate-pulse"
                  style={{ background: 'var(--surface-light)', borderColor: 'var(--primary)' }}>
               <span className="text-sm font-semibold" style={{ color: 'var(--primary)' }}>
-                🚀 Applications Open for 2025-26
+                Applications Open for 2025-26
               </span>
             </div>
             
@@ -71,7 +71,7 @@ export default function Home() {
                 className="px-8 py-4 rounded-lg font-bold text-lg transition-all hover:scale-105 shadow-lg"
                 style={{ background: 'var(--gradient-primary)', color: 'var(--foreground)' }}
               >
-                🎯 Apply Now
+                Apply Now
               </a>
               <a href="#benefits" 
                  className="px-8 py-4 rounded-lg font-semibold text-lg border transition-all hover:scale-105"
