@@ -2,17 +2,23 @@
 import React, { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { collection, query, getDocs, orderBy, doc, updateDoc } from "firebase/firestore";
+import { collection, query, getDocs, orderBy, doc, updateDoc, deleteDoc, where } from "firebase/firestore";
 import { useAdminAuth } from "@/app/providers/AdminAuthProvider";
 import { db } from "@/lib/firebase";
 import { Task } from "@/lib/types";
+
+type TaskWithStats = Task & {
+  pendingCount: number;
+  totalSubmissions: number;
+};
 
 function AdminDashboard() {
   const { admin, logout } = useAdminAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<TaskWithStats[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalPending, setTotalPending] = useState(0);
 
   useEffect(() => {
     if (!admin) {
@@ -33,11 +39,39 @@ function AdminDashboard() {
       );
       const tasksSnap = await getDocs(tasksQuery);
       console.log("Tasks snapshot size:", tasksSnap.size);
-      console.log("Tasks docs:", tasksSnap.docs.map(d => ({ id: d.id, data: d.data() })));
-      const tasksData = tasksSnap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Task[];
+      
+      // Fetch all submissions
+      const submissionsSnap = await getDocs(collection(db, "submissions"));
+      
+      // Calculate pending and total submissions per task
+      const submissionsByTask: Record<string, { pending: number; total: number }> = {};
+      submissionsSnap.docs.forEach(doc => {
+        const data = doc.data();
+        const taskId = data.taskId;
+        if (!submissionsByTask[taskId]) {
+          submissionsByTask[taskId] = { pending: 0, total: 0 };
+        }
+        submissionsByTask[taskId].total++;
+        if (!data.reviewed) {
+          submissionsByTask[taskId].pending++;
+        }
+      });
+      
+      const tasksData = tasksSnap.docs.map(doc => {
+        const taskId = doc.id;
+        const stats = submissionsByTask[taskId] || { pending: 0, total: 0 };
+        return {
+          id: taskId,
+          ...doc.data(),
+          pendingCount: stats.pending,
+          totalSubmissions: stats.total
+        };
+      }) as TaskWithStats[];
+      
+      // Calculate total pending across all tasks
+      const total = Object.values(submissionsByTask).reduce((sum, stats) => sum + stats.pending, 0);
+      setTotalPending(total);
+      
       console.log("Parsed tasks data:", tasksData);
       setTasks(tasksData);
     } catch (error) {
@@ -62,6 +96,23 @@ function AdminDashboard() {
     }
   };
 
+  const deleteTask = async (taskId: string, taskTitle: string) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the task "${taskTitle}"?\n\nThis action cannot be undone and will also delete all submissions for this task.`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      await deleteDoc(doc(db, "tasks", taskId));
+      setTasks(tasks.filter(t => t.id !== taskId));
+      alert("Task deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      alert("Failed to delete task: " + error);
+    }
+  };
+
   if (!admin) return null;
 
   return (
@@ -76,6 +127,13 @@ function AdminDashboard() {
             <p className="mt-1" style={{ color: 'var(--muted)' }}>
               Manage tasks and review submissions
             </p>
+            {totalPending > 0 && (
+              <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold"
+                   style={{ background: 'var(--accent)', color: 'var(--background)' }}>
+                <span className="animate-pulse">🔔</span>
+                {totalPending} Pending Review{totalPending !== 1 ? 's' : ''}
+              </div>
+            )}
           </div>
           <div className="flex gap-3 flex-wrap">
             <button
@@ -169,6 +227,12 @@ function AdminDashboard() {
                               ⏰ Expired
                             </span>
                           )}
+                          {task.pendingCount > 0 && (
+                            <span className="text-xs px-2 py-1 rounded-full font-semibold animate-pulse"
+                                  style={{ background: 'var(--accent)', color: 'var(--background)' }}>
+                              🔔 {task.pendingCount} Pending
+                            </span>
+                          )}
                         </div>
                         <p className="mt-1 line-clamp-2" style={{ color: 'var(--muted)' }}>
                           {task.description}
@@ -188,6 +252,10 @@ function AdminDashboard() {
                           <span className="flex items-center gap-1">
                             <span>📅</span>
                             Created: {task.createdAt.toDate().toLocaleDateString()}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span>📝</span>
+                            Submissions: {task.totalSubmissions}
                           </span>
                         </div>
                       </div>
@@ -220,6 +288,16 @@ function AdminDashboard() {
                         >
                           📝 Submissions
                         </Link>
+                        <button
+                          onClick={() => deleteTask(task.id, task.title)}
+                          className="px-3 py-2 text-sm rounded-lg transition-all hover:scale-105 font-medium"
+                          style={{ 
+                            background: 'var(--danger)', 
+                            color: 'var(--foreground)'
+                          }}
+                        >
+                          🗑️ Delete
+                        </button>
                       </div>
                     </div>
                   </div>

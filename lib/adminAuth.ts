@@ -8,7 +8,7 @@ export interface AdminCredentials {
 const ADMIN_CREDENTIALS: AdminCredentials[] = [
   {
     username: "admin",
-    password: "admin123",
+    password: "edctonewheights2023",
     name: "Administrator"
   }
 ];
