@@ -84,17 +84,8 @@ export default function DashboardPage() {
   const [filter, setFilter] = useState<'unattempted' | 'completed' | 'all'>('unattempted');
   const [showLevelsModal, setShowLevelsModal] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-  const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
 
   // Auto-rotate carousel
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentCarouselIndex((prev) => (prev + 1) % 2); // 2 items in carousel
-    }, 5000); // Rotate every 5 seconds
-
-    return () => clearInterval(interval);
-  }, []);
-
   useEffect(() => {
     if (!user) {
       router.replace("/auth/login");
@@ -206,9 +197,20 @@ export default function DashboardPage() {
                 </p>
               </div>
               
+              {/* Store Link */}
+              <Link
+                href="/store"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all hover:scale-105"
+                style={{ background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.3)' }}
+                title="NO CAP Store"
+              >
+                <span className="text-xl">🏪</span>
+                <span className="text-sm font-medium" style={{ color: '#8B5CF6' }}>Store</span>
+              </Link>
+
               {/* WhatsApp Community Link */}
               <a
-                href="https://chat.whatsapp.com/IkB9NKdXlDH1Z5C43m9xrk"
+                href="https://chat.whatsapp.com/Hy6fJxw9amXIPw4x15k6Jz?mode=hqrc"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all hover:scale-105"
@@ -318,12 +320,22 @@ export default function DashboardPage() {
               </div>
               
               <div className="flex items-center gap-2">
+                {/* Store Button - Mobile */}
+                <Link
+                  href="/store"
+                  className="w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-95"
+                  style={{ background: 'rgba(139, 92, 246, 0.15)', border: '1px solid rgba(139, 92, 246, 0.4)' }}
+                  title="NO CAP Store"
+                >
+                  <span className="text-xl">🏪</span>
+                </Link>
+
                 {/* WhatsApp Community Button - Mobile */}
                 <a
-                  href="https://chat.whatsapp.com/IkB9NKdXlDH1Z5C43m9xrk"
+                  href="https://chat.whatsapp.com/Hy6fJxw9amXIPw4x15k6Jz?mode=hqrc"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110"
+                  className="w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-95"
                   style={{ background: 'rgba(37, 211, 102, 0.15)', border: '1px solid rgba(37, 211, 102, 0.4)' }}
                   title="Join WhatsApp Community"
                 >
@@ -418,184 +430,87 @@ export default function DashboardPage() {
       </div>
 
       <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
-        {/* Carousel Container */}
-        <div className="relative overflow-hidden rounded-2xl" style={{ minHeight: '280px' }}>
-          {/* Carousel Track */}
-          <div 
-            className="flex transition-transform duration-700 ease-in-out"
-            style={{ transform: `translateX(-${currentCarouselIndex * 100}%)` }}
-          >
-            {/* Slide 1: Level Progress */}
-            <div className="w-full flex-shrink-0 px-1">
-              <div 
-                className="glass-card p-6 sm:p-8 cursor-pointer transition-all hover:scale-[1.01] h-full"
-                onClick={() => setShowLevelsModal(true)}
-                style={{ position: 'relative', overflow: 'hidden' }}
-              >
-                <div className="absolute inset-0 opacity-10"
-                     style={{ background: `linear-gradient(135deg, ${currentLevel.color} 0%, transparent 100%)` }}></div>
-                
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-4">
-                      <div className="text-5xl sm:text-6xl">{currentLevel.icon}</div>
-                      <div>
-                        <h3 className="text-2xl sm:text-3xl font-bold" style={{ color: currentLevel.color }}>
-                          {currentLevel.level} Tier
-                        </h3>
-                        <p className="text-sm sm:text-base mt-1" style={{ color: 'var(--muted)' }}>
-                          {currentLevel.criteria}
-                        </p>
-                      </div>
-                    </div>
-                    {nextLevel && (
-                      <div className="text-right hidden sm:block">
-                        <p className="text-sm" style={{ color: 'var(--muted)' }}>Next Tier</p>
-                        <p className="text-xl font-bold" style={{ color: nextLevel.color }}>
-                          {nextLevel.level}
-                        </p>
-                        <p className="text-sm font-semibold mt-1" style={{ color: 'var(--foreground)' }}>
-                          {nextLevel.minPoints - userPoints} pts to go
-                        </p>
-                      </div>
-                    )}
-                    {!nextLevel && (
-                      <div className="text-right hidden sm:block">
-                        <p className="text-xl font-bold" style={{ color: currentLevel.color }}>
-                          🏆 Max Tier
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="relative">
-                    <div className="h-4 rounded-full overflow-hidden" style={{ background: 'var(--surface-light)' }}>
-                      <div 
-                        className="h-full transition-all duration-500 rounded-full"
-                        style={{ 
-                          width: `${progressToNext}%`,
-                          background: `linear-gradient(90deg, ${currentLevel.color}, ${nextLevel?.color || currentLevel.color})`
-                        }}
-                      ></div>
-                    </div>
-                    <div className="flex justify-between items-center mt-3">
-                      <div className="text-center">
-                        <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Current</p>
-                        <span className="text-sm font-bold" style={{ color: currentLevel.color }}>
-                          {currentLevel.minPoints} pts
-                        </span>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Progress</p>
-                        <span className="text-base font-bold" style={{ color: 'var(--foreground)' }}>
-                          {userPoints} / {nextLevel ? nextLevel.minPoints : currentLevel.maxPoints}
-                        </span>
-                      </div>
-                      {nextLevel && (
-                        <div className="text-center">
-                          <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Next</p>
-                          <span className="text-sm font-bold" style={{ color: nextLevel.color }}>
-                            {nextLevel.minPoints} pts
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 text-center">
-                    <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                      💡 Click to view all tiers and rewards
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Slide 2: CAP Store */}
-            <div className="w-full flex-shrink-0 px-1">
-              <Link href="/store">
-                <div 
-                  className="glass-card p-6 sm:p-8 cursor-pointer transition-all hover:scale-[1.01] relative overflow-hidden group h-full"
-                  style={{ 
-                    background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)',
-                    border: '2px solid rgba(99, 102, 241, 0.3)'
-                  }}
-                >
-                  <div 
-                    className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500"
-                    style={{ background: 'var(--gradient-primary)' }}
-                  ></div>
-                  
-                  <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div className="flex-1 text-center md:text-left">
-                      <div className="flex items-center justify-center md:justify-start gap-3 mb-3">
-                        <span className="text-4xl sm:text-5xl">🏪</span>
-                        <h2 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--foreground)' }}>
-                          NO CAP Store
-                        </h2>
-                      <span className="px-3 py-1 rounded-full text-xs font-bold animate-pulse"
-                            style={{ background: 'var(--gradient-primary)', color: 'var(--foreground)' }}>
-                        COMING SOON
-                      </span>
-                    </div>
-                    <p className="text-sm sm:text-base mb-4" style={{ color: 'var(--muted)' }}>
-                      Redeem your hard-earned points for exclusive rewards, merchandise, and amazing perks!
-                    </p>
-                    <div className="flex flex-wrap gap-3 justify-center md:justify-start">
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'var(--surface)' }}>
-                        <span className="text-lg">🎁</span>
-                        <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>Exclusive Merch</span>
-                      </div>
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'var(--surface)' }}>
-                        <span className="text-lg">🎟️</span>
-                        <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>Event Tickets</span>
-                      </div>
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'var(--surface)' }}>
-                        <span className="text-lg">💎</span>
-                        <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>Premium Rewards</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="relative flex-shrink-0 hidden md:block">
-                    <div className="text-8xl sm:text-9xl opacity-90 transform group-hover:scale-110 transition-transform duration-500">
-                      🎁
-                    </div>
-                    <div className="absolute -top-2 -right-2 text-3xl animate-bounce">✨</div>
-                    <div className="absolute -bottom-2 -left-2 text-3xl animate-bounce delay-100">⭐</div>
-                  </div>
-                </div>
-                
-                <div className="relative z-10 mt-4 text-center">
-                  <p className="text-xs font-semibold" style={{ color: 'var(--primary)' }}>
-                    💡 Click to learn more • Your Points: {userPoints}
+        {/* Level Progress */}
+        <div 
+          className="glass-card p-6 sm:p-8 cursor-pointer transition-all hover:scale-[1.01]"
+          onClick={() => setShowLevelsModal(true)}
+          style={{ position: 'relative', overflow: 'hidden' }}
+        >
+          <div className="absolute inset-0 opacity-10"
+               style={{ background: `linear-gradient(135deg, ${currentLevel.color} 0%, transparent 100%)` }}></div>
+          
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div className="text-5xl sm:text-6xl">{currentLevel.icon}</div>
+                <div>
+                  <h3 className="text-2xl sm:text-3xl font-bold" style={{ color: currentLevel.color }}>
+                    {currentLevel.level} Tier
+                  </h3>
+                  <p className="text-sm sm:text-base mt-1" style={{ color: 'var(--muted)' }}>
+                    {currentLevel.criteria}
                   </p>
                 </div>
               </div>
-              </Link>
+              {nextLevel && (
+                <div className="text-right hidden sm:block">
+                  <p className="text-sm" style={{ color: 'var(--muted)' }}>Next Tier</p>
+                  <p className="text-xl font-bold" style={{ color: nextLevel.color }}>
+                    {nextLevel.level}
+                  </p>
+                  <p className="text-sm font-semibold mt-1" style={{ color: 'var(--foreground)' }}>
+                    {nextLevel.minPoints - userPoints} pts to go
+                  </p>
+                </div>
+              )}
+              {!nextLevel && (
+                <div className="text-right hidden sm:block">
+                  <p className="text-xl font-bold" style={{ color: currentLevel.color }}>
+                    🏆 Max Tier
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
 
-          {/* Carousel Indicators */}
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 z-20">
-            <button
-              onClick={() => setCurrentCarouselIndex(0)}
-              className="w-2 h-2 rounded-full transition-all"
-              style={{ 
-                background: currentCarouselIndex === 0 ? 'var(--primary)' : 'var(--surface-light)',
-                width: currentCarouselIndex === 0 ? '24px' : '8px'
-              }}
-              aria-label="Slide 1"
-            />
-            <button
-              onClick={() => setCurrentCarouselIndex(1)}
-              className="w-2 h-2 rounded-full transition-all"
-              style={{ 
-                background: currentCarouselIndex === 1 ? 'var(--primary)' : 'var(--surface-light)',
-                width: currentCarouselIndex === 1 ? '24px' : '8px'
-              }}
-              aria-label="Slide 2"
-            />
+            <div className="relative">
+              <div className="h-4 rounded-full overflow-hidden" style={{ background: 'var(--surface-light)' }}>
+                <div 
+                  className="h-full transition-all duration-500 rounded-full"
+                  style={{ 
+                    width: `${progressToNext}%`,
+                    background: `linear-gradient(90deg, ${currentLevel.color}, ${nextLevel?.color || currentLevel.color})`
+                  }}
+                ></div>
+              </div>
+              <div className="flex justify-between items-center mt-3">
+                <div className="text-center">
+                  <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Current</p>
+                  <span className="text-sm font-bold" style={{ color: currentLevel.color }}>
+                    {currentLevel.minPoints} pts
+                  </span>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Progress</p>
+                  <span className="text-base font-bold" style={{ color: 'var(--foreground)' }}>
+                    {userPoints} / {nextLevel ? nextLevel.minPoints : currentLevel.maxPoints}
+                  </span>
+                </div>
+                {nextLevel && (
+                  <div className="text-center">
+                    <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Next</p>
+                    <span className="text-sm font-bold" style={{ color: nextLevel.color }}>
+                      {nextLevel.minPoints} pts
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 text-center">
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                💡 Click to view all tiers and rewards
+              </p>
+            </div>
           </div>
         </div>
 
