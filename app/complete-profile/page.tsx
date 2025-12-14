@@ -125,7 +125,7 @@ export default function CompleteProfilePage() {
             </div>
 
             <a
-              href="https://chat.whatsapp.com/HZIAvml0gqDHr3wWqCT589"
+              href="https://chat.whatsapp.com/Gdo86YILnfXKuM4ugldbQf"
               target="_blank"
               rel="noopener noreferrer"
               className="block w-full py-3 rounded-lg font-bold text-lg transition-all hover:scale-105 mb-3"
