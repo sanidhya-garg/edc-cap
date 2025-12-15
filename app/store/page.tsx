@@ -322,7 +322,7 @@ export default function StorePage() {
               Available Rewards
             </h2>
             <p className="text-sm sm:text-base" style={{ color: 'var(--muted)' }}>
-              {storeItems.length} exclusive item{storeItems.length !== 1 ? 's' : ''} • Unlock with your points
+              {storeItems.length + 1} exclusive item{storeItems.length + 1 !== 1 ? 's' : ''} • Unlock with your points
             </p>
           </div>
 
@@ -330,12 +330,6 @@ export default function StorePage() {
             <div className="text-center py-20">
               <div className="animate-spin text-6xl mb-4">⭐</div>
               <p className="text-lg" style={{ color: 'var(--muted)' }}>Loading rewards...</p>
-            </div>
-          ) : storeItems.length === 0 ? (
-            <div className="text-center py-20 rounded-2xl" style={{ background: 'var(--surface)' }}>
-              <div className="text-6xl mb-4">🎁</div>
-              <p className="text-lg font-semibold mb-2" style={{ color: 'var(--foreground)' }}>No items available yet</p>
-              <p className="text-sm" style={{ color: 'var(--muted)' }}>Check back soon for exciting rewards!</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
