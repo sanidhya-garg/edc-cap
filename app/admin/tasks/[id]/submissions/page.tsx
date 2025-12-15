@@ -69,6 +69,14 @@ export default function SubmissionsPage() {
       
       console.log("Awarding points...", { submissionId, userId, pointsToAward });
 
+      // Fetch the current submission from database to get accurate previous points
+      console.log("Fetching current submission data...");
+      const submissionDoc = await getDoc(doc(db, "submissions", submissionId));
+      const previousPoints = submissionDoc.exists() ? (submissionDoc.data().pointsAwarded || 0) : 0;
+      const pointsDelta = pointsToAward - previousPoints;
+
+      console.log("Previous points:", previousPoints, "New points:", pointsToAward, "Delta:", pointsDelta);
+
       // Update submission
       console.log("Updating submission...");
       await updateDoc(doc(db, "submissions", submissionId), {
@@ -82,11 +90,6 @@ export default function SubmissionsPage() {
       // Update user's total points
       console.log("Updating user points...");
       const userDoc = doc(db, "users", userId);
-      const currentSubmission = submissions.find(s => s.id === submissionId);
-      const previousPoints = currentSubmission?.pointsAwarded || 0;
-      const pointsDelta = pointsToAward - previousPoints;
-
-      console.log("Points delta:", pointsDelta);
       await updateDoc(userDoc, {
         points: increment(pointsDelta),
         updatedAt: Timestamp.now(),

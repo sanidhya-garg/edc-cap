@@ -124,14 +124,38 @@ export default function DashboardPage() {
         })) as Submission[];
         setSubmissions(submissionsData);
 
-        // Calculate user rank
+        // Calculate user rank with tie handling
         const allUsersQuery = query(
           collection(db, "users"),
           orderBy("points", "desc")
         );
         const allUsersSnap = await getDocs(allUsersQuery);
-        const rank = allUsersSnap.docs.findIndex(doc => doc.id === user.uid) + 1;
-        setUserRank(rank || 0);
+        
+        // Find user's rank considering ties
+        let rank = 1;
+        let prevPoints = null;
+        let sameRankCount = 0;
+        
+        for (let i = 0; i < allUsersSnap.docs.length; i++) {
+          const doc = allUsersSnap.docs[i];
+          const points = doc.data().points || 0;
+          
+          if (prevPoints !== null && points < prevPoints) {
+            // Different points, update rank by adding count of users with previous points
+            rank += sameRankCount;
+            sameRankCount = 1;
+          } else {
+            // Same points or first user
+            sameRankCount++;
+          }
+          
+          if (doc.id === user.uid) {
+            setUserRank(rank);
+            break;
+          }
+          
+          prevPoints = points;
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {

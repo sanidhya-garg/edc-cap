@@ -45,3 +45,45 @@ export interface Submission {
   reviewedAt?: Timestamp;
   submittedAt: Timestamp;
 }
+
+export type OrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+
+export interface Order {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  itemId: string;
+  itemTitle: string;
+  pointsUsed: number;
+  status: OrderStatus;
+  shippingAddress: {
+    name: string;
+    email: string;
+    phone: string;
+    addressLine1: string;
+    addressLine2?: string;
+    city: string;
+    state: string;
+    pincode: string;
+  };
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export type StoreItemType = "letter" | "book" | "merchandise" | "other";
+
+export interface StoreItem {
+  id: string;
+  title: string;
+  description: string;
+  pointsRequired: number;
+  icon: string;
+  type: StoreItemType;
+  imageUrl?: string;
+  isActive: boolean;
+  isPaused: boolean;
+  createdBy: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
