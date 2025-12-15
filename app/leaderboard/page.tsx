@@ -49,14 +49,38 @@ export default function LeaderboardPage() {
           } as UserProfile;
           setCurrentUser(userData);
 
-          // Calculate rank
+          // Calculate rank with tie handling
           const allUsersQuery = query(
             collection(db, "users"),
             orderBy("points", "desc")
           );
           const allUsersSnap = await getDocs(allUsersQuery);
-          const rank = allUsersSnap.docs.findIndex(doc => doc.id === user.uid) + 1;
-          setUserRank(rank);
+          
+          // Find user's rank considering ties
+          let rank = 1;
+          let prevPoints = null;
+          let sameRankCount = 0;
+          
+          for (let i = 0; i < allUsersSnap.docs.length; i++) {
+            const doc = allUsersSnap.docs[i];
+            const points = doc.data().points || 0;
+            
+            if (prevPoints !== null && points < prevPoints) {
+              // Different points, update rank by adding count of users with previous points
+              rank += sameRankCount;
+              sameRankCount = 1;
+            } else {
+              // Same points or first user
+              sameRankCount++;
+            }
+            
+            if (doc.id === user.uid) {
+              setUserRank(rank);
+              break;
+            }
+            
+            prevPoints = points;
+          }
         }
       } catch (error) {
         console.error("Error fetching leaderboard:", error);
@@ -148,7 +172,26 @@ export default function LeaderboardPage() {
             ) : (
               topUsers.map((u, index) => {
                 const isCurrentUser = u.uid === user?.uid;
-                const rankEmoji = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "";
+                
+                // Calculate rank considering ties
+                let rank = 1;
+                for (let i = 0; i < index; i++) {
+                  if (topUsers[i].points !== topUsers[i + 1]?.points) {
+                    rank = i + 2;
+                  }
+                }
+                // If current user has same points as previous, use previous rank
+                if (index > 0 && topUsers[index].points === topUsers[index - 1].points) {
+                  let prevRank = 1;
+                  for (let i = 0; i < index - 1; i++) {
+                    if (topUsers[i].points !== topUsers[i + 1]?.points) {
+                      prevRank = i + 2;
+                    }
+                  }
+                  rank = prevRank;
+                }
+                
+                const rankEmoji = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "";
                 
                 return (
                   <div
@@ -162,8 +205,8 @@ export default function LeaderboardPage() {
                     {/* Rank */}
                     <div className="flex items-center justify-center w-16 h-16 rounded-full font-bold text-xl"
                          style={{ background: 'var(--surface)' }}>
-                      <span style={{ color: index < 3 ? 'var(--warning)' : 'var(--foreground)' }}>
-                        {rankEmoji || `#${index + 1}`}
+                      <span style={{ color: rank <= 3 ? 'var(--warning)' : 'var(--foreground)' }}>
+                        {rankEmoji || `#${rank}`}
                       </span>
                     </div>
 

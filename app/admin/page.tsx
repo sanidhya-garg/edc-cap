@@ -148,6 +148,17 @@ function AdminDashboard() {
               🔄 Refresh
             </button>
             <Link
+              href="/admin/store"
+              className="px-4 py-2 rounded-lg border transition-all hover:scale-105"
+              style={{ 
+                background: 'var(--surface)', 
+                borderColor: 'var(--surface-light)',
+                color: 'var(--foreground)'
+              }}
+            >
+              🏪 Store Management
+            </Link>
+            <Link
               href="/dashboard"
               className="px-4 py-2 rounded-lg border transition-all hover:scale-105"
               style={{ 
