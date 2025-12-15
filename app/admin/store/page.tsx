@@ -554,7 +554,6 @@ export default function AdminStorePage() {
                   className="w-full px-4 py-3 rounded-lg border-2"
                   style={{ background: 'var(--background)', borderColor: 'var(--surface-light)', color: 'var(--foreground)' }}
                 >
-                  <option value="letter">Letter</option>
                   <option value="book">Book</option>
                   <option value="merchandise">Merchandise</option>
                   <option value="other">Other</option>
