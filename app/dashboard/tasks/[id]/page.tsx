@@ -110,8 +110,27 @@ export default function TaskDetailPage() {
           ...updatedDoc.data()
         } as Submission);
         setFile(null);
+      } else if (submission) {
+        // If submission exists but we're not in editing mode, still update it
+        console.log("Submission exists, updating instead of creating new...");
+        const submissionRef = doc(db, "submissions", submission.id);
+        await updateDoc(submissionRef, {
+          fileUrl,
+          fileName,
+          comment,
+          submittedAt: Timestamp.now(),
+        });
+        console.log("Submission updated successfully!");
+        // Refresh submission data
+        const updatedDoc = await getDoc(submissionRef);
+        setSubmission({
+          id: updatedDoc.id,
+          ...updatedDoc.data()
+        } as Submission);
+        setFile(null);
+        router.push("/dashboard");
       } else {
-        // Create new submission
+        // Create new submission only if none exists
         const submissionData: Omit<Submission, "id"> = {
           taskId: id as string,
           userId: user.uid,
