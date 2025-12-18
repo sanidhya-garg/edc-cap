@@ -139,7 +139,7 @@ export default function CompleteProfilePage() {
               className="w-full py-3 rounded-lg font-semibold transition-all hover:scale-105"
               style={{ background: 'var(--surface-light)', color: 'var(--foreground)' }}
             >
-              I&apos;ve Joined - Continue to Dashboard →
+              I&apos;ve Joined - Continue to Dashboard -→
             </button>
           </div>
         </div>
