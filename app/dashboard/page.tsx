@@ -712,10 +712,10 @@ export default function DashboardPage() {
                             </span>
                           )}
                           {!submitted && !isClosed && !isExpired && (
-                            <span className="px-3 py-1 rounded-full text-xs font-semibold animate-pulse"
-                                  style={{ background: 'var(--primary)', color: 'var(--foreground)' }}>
-                              🔥 Active
-                            </span>
+                            <span className="px-3 py-1 rounded-full text-sm font-semibold animate-pulse"
+                      style={{ background: 'var(--success)', color: 'var(--background)' }}>
+                  ✓ Open
+                </span>
                           )}
                         </div>
 
@@ -734,7 +734,7 @@ export default function DashboardPage() {
                             <div className="flex items-center gap-1 sm:gap-2">
                               <span className="text-base sm:text-lg">📅</span>
                               <span style={{ color: 'var(--muted)' }}>
-                                {task.deadline.toDate().toLocaleDateString()}
+                                {task.deadline.toDate().toLocaleDateString()} at {task.deadline.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </div>
                           )}
