@@ -234,7 +234,7 @@ export default function DashboardPage() {
 
               {/* WhatsApp Community Link */}
               <a
-                href="https://chat.whatsapp.com/J1z2F9iQozHAeZKjlvr11p"
+                href="https://chat.whatsapp.com/JPIf86cf4jHCHqi7wwjJcV"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all hover:scale-105"
@@ -356,7 +356,7 @@ export default function DashboardPage() {
 
                 {/* WhatsApp Community Button - Mobile */}
                 <a
-                  href="https://chat.whatsapp.com/J1z2F9iQozHAeZKjlvr11p"
+                  href="https://chat.whatsapp.com/JPIf86cf4jHCHqi7wwjJcV"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-95"
