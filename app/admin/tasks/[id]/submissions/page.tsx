@@ -72,7 +72,7 @@ export default function SubmissionsPage() {
     setReviewingId(submissionId);
     try {
       const pointsToAward = points[submissionId] || 0;
-      
+
       console.log("Awarding points...", { submissionId, userId, pointsToAward });
 
       // Fetch the current submission from database to get accurate previous points
@@ -101,6 +101,16 @@ export default function SubmissionsPage() {
         updatedAt: Timestamp.now(),
       });
       console.log("User points updated!");
+
+      // Decrement pendingCount on task if this is the first time reviewing
+      const wasNotReviewed = submissionDoc.exists() && !submissionDoc.data().reviewed;
+      if (wasNotReviewed) {
+        console.log("Decrementing pending count on task...");
+        await updateDoc(doc(db, "tasks", id as string), {
+          pendingCount: increment(-1)
+        });
+        console.log("Task pending count updated!");
+      }
 
       // Update local state
       setSubmissions(submissions.map(s =>
@@ -137,7 +147,7 @@ export default function SubmissionsPage() {
     // Filter by status
     if (filter === "pending" && sub.reviewed) return false;
     if (filter === "reviewed" && !sub.reviewed) return false;
-    
+
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -146,7 +156,7 @@ export default function SubmissionsPage() {
       const matchesFile = sub.fileName.toLowerCase().includes(query);
       return matchesName || matchesEmail || matchesFile;
     }
-    
+
     return true;
   });
 
@@ -183,8 +193,8 @@ export default function SubmissionsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--background)' }}>
         <div className="flex items-center gap-3" style={{ color: 'var(--muted)' }}>
-          <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin" 
-               style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}></div>
+          <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin"
+            style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}></div>
           Loading...
         </div>
       </div>
@@ -199,9 +209,9 @@ export default function SubmissionsPage() {
         <div className="text-center">
           <div className="text-6xl mb-4">❌</div>
           <p className="text-xl mb-4" style={{ color: 'var(--danger)' }}>Task not found</p>
-          <Link href="/admin" 
-                className="px-6 py-3 rounded-lg font-medium inline-block"
-                style={{ background: 'var(--gradient-primary)', color: 'var(--foreground)' }}>
+          <Link href="/admin"
+            className="px-6 py-3 rounded-lg font-medium inline-block"
+            style={{ background: 'var(--gradient-primary)', color: 'var(--foreground)' }}>
             Back to Admin Dashboard
           </Link>
         </div>
@@ -216,9 +226,9 @@ export default function SubmissionsPage() {
       {/* Header */}
       <div className="border-b" style={{ borderColor: 'var(--surface-light)', background: 'var(--surface)' }}>
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <Link href="/admin" 
-                className="inline-flex items-center gap-2 font-medium transition-all hover:scale-105"
-                style={{ color: 'var(--primary)' }}>
+          <Link href="/admin"
+            className="inline-flex items-center gap-2 font-medium transition-all hover:scale-105"
+            style={{ color: 'var(--primary)' }}>
             ← Back to Admin Dashboard
           </Link>
         </div>
@@ -240,10 +250,10 @@ export default function SubmissionsPage() {
             </span>
             <span className="flex items-center gap-1">
               <span className="px-2 py-1 rounded-full text-xs font-semibold"
-                    style={{ 
-                      background: task.status === "open" ? 'var(--success)' : 'var(--surface-light)',
-                      color: task.status === "open" ? 'var(--background)' : 'var(--muted)'
-                    }}>
+                style={{
+                  background: task.status === "open" ? 'var(--success)' : 'var(--surface-light)',
+                  color: task.status === "open" ? 'var(--background)' : 'var(--muted)'
+                }}>
                 {task.status === "open" ? "✓ Open" : "🔒 Closed"}
               </span>
             </span>
@@ -262,7 +272,7 @@ export default function SubmissionsPage() {
             <h2 className="text-2xl font-semibold mb-4" style={{ color: 'var(--foreground)' }}>
               📝 Submissions ({submissions.length})
             </h2>
-            
+
             {/* Search and Filter Bar */}
             <div className="flex flex-col sm:flex-row gap-4 mb-4">
               {/* Search Input */}
@@ -274,8 +284,8 @@ export default function SubmissionsPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full px-4 py-3 pl-10 rounded-lg border-2 transition-all focus:outline-none focus:ring-2"
-                    style={{ 
-                      background: 'var(--surface)', 
+                    style={{
+                      background: 'var(--surface)',
                       borderColor: 'var(--surface-light)',
                       color: 'var(--foreground)'
                     }}
@@ -329,9 +339,9 @@ export default function SubmissionsPage() {
             <div className="text-center py-12">
               <div className="text-6xl mb-3">📭</div>
               <p style={{ color: 'var(--muted)' }}>
-                {searchQuery ? "No submissions match your search" : 
-                 filter === "pending" ? "No pending submissions" : 
-                 filter === "reviewed" ? "No reviewed submissions" : "No submissions yet"}
+                {searchQuery ? "No submissions match your search" :
+                  filter === "pending" ? "No pending submissions" :
+                    filter === "reviewed" ? "No reviewed submissions" : "No submissions yet"}
               </p>
             </div>
           ) : (
@@ -420,12 +430,12 @@ export default function SubmissionsPage() {
                         <td className="p-4 text-center">
                           {submission.reviewed ? (
                             <span className="px-3 py-1 rounded-full text-xs font-bold inline-block"
-                                  style={{ background: '#10B981', color: 'white' }}>
+                              style={{ background: '#10B981', color: 'white' }}>
                               ✓ Reviewed
                             </span>
                           ) : (
                             <span className="px-3 py-1 rounded-full text-xs font-bold inline-block"
-                                  style={{ background: '#FFA500', color: 'white' }}>
+                              style={{ background: '#FFA500', color: 'white' }}>
                               ⏳ Pending
                             </span>
                           )}
@@ -536,7 +546,7 @@ export default function SubmissionsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0, 0, 0, 0.7)' }}>
           <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl" style={{ background: 'var(--surface)' }}>
             <div className="sticky top-0 z-10 px-6 py-4 border-b backdrop-blur-lg flex justify-between items-center"
-                 style={{ borderColor: 'var(--surface-light)', background: 'rgba(var(--surface-rgb), 0.95)' }}>
+              style={{ borderColor: 'var(--surface-light)', background: 'rgba(var(--surface-rgb), 0.95)' }}>
               <h2 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>
                 📝 Review Submission
               </h2>
@@ -597,8 +607,8 @@ export default function SubmissionsPage() {
                       min={0}
                       max={task.maxPoints}
                       className="w-full rounded-lg p-3 border-2 transition-all focus:outline-none focus:ring-2"
-                      style={{ 
-                        background: 'var(--surface)', 
+                      style={{
+                        background: 'var(--surface)',
                         borderColor: 'var(--surface-lighter)',
                         color: 'var(--foreground)'
                       }}
@@ -620,8 +630,8 @@ export default function SubmissionsPage() {
                     {reviewingId === selectedSubmission.id
                       ? "⏳ Saving..."
                       : selectedSubmission.reviewed
-                      ? "🔄 Update Points"
-                      : "✓ Award Points"}
+                        ? "🔄 Update Points"
+                        : "✓ Award Points"}
                   </button>
                 </div>
                 {selectedSubmission.reviewed && selectedSubmission.reviewedAt && (

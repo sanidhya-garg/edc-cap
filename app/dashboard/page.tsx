@@ -2,10 +2,26 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy, Timestamp } from "firebase/firestore";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { db } from "@/lib/firebase";
 import { Task, Submission } from "@/lib/types";
+import { getCached, setCache } from "@/lib/cache";
+
+// Helper to safely convert Timestamp or cached object to Date
+// When data is cached in sessionStorage, Timestamps become plain objects
+const toDate = (ts: Timestamp | { seconds: number; nanoseconds: number } | undefined): Date | null => {
+  if (!ts) return null;
+  // If it's a Firestore Timestamp with toDate method
+  if ('toDate' in ts && typeof ts.toDate === 'function') {
+    return ts.toDate();
+  }
+  // If it's a serialized timestamp object from cache
+  if ('seconds' in ts) {
+    return new Date(ts.seconds * 1000);
+  }
+  return null;
+};
 
 // Level tiers configuration
 const LEVEL_TIERS = [
@@ -100,62 +116,51 @@ export default function DashboardPage() {
 
     const fetchData = async () => {
       try {
-        // Fetch all tasks (including closed ones for display)
-        const tasksQuery = query(
-          collection(db, "tasks"),
-          orderBy("createdAt", "desc")
-        );
-        const tasksSnap = await getDocs(tasksQuery);
-        const tasksData = tasksSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Task[];
-        setTasks(tasksData);
-
-        // Fetch user's submissions
-        const submissionsQuery = query(
-          collection(db, "submissions"),
-          where("userId", "==", user.uid)
-        );
-        const submissionsSnap = await getDocs(submissionsQuery);
-        const submissionsData = submissionsSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Submission[];
-        setSubmissions(submissionsData);
-
-        // Calculate user rank with tie handling
-        const allUsersQuery = query(
-          collection(db, "users"),
-          orderBy("points", "desc")
-        );
-        const allUsersSnap = await getDocs(allUsersQuery);
-        
-        // Find user's rank considering ties
-        let rank = 1;
-        let prevPoints = null;
-        let sameRankCount = 0;
-        
-        for (let i = 0; i < allUsersSnap.docs.length; i++) {
-          const doc = allUsersSnap.docs[i];
-          const points = doc.data().points || 0;
-          
-          if (prevPoints !== null && points < prevPoints) {
-            // Different points, update rank by adding count of users with previous points
-            rank += sameRankCount;
-            sameRankCount = 1;
-          } else {
-            // Same points or first user
-            sameRankCount++;
-          }
-          
-          if (doc.id === user.uid) {
-            setUserRank(rank);
-            break;
-          }
-          
-          prevPoints = points;
+        // Use cached rank from userProfile instead of fetching all 25K users!
+        // This is the main optimization - saves 25,000 reads per page load
+        if (userProfile?.rank) {
+          setUserRank(userProfile.rank);
         }
+
+        // Check for cached tasks first
+        // IMPORTANT: Skip cache temporarily to fix stale Timestamp data
+        // TODO: Remove this cache clear after users have refreshed with new code
+        const cachedTasks = null; // Temporarily disabled: getCached<Task[]>('dashboard_tasks');
+        if (cachedTasks) {
+          setTasks(cachedTasks);
+        } else {
+          // Fetch all tasks (including closed ones for display)
+          const tasksQuery = query(
+            collection(db, "tasks"),
+            orderBy("createdAt", "desc")
+          );
+          const tasksSnap = await getDocs(tasksQuery);
+          const tasksData = tasksSnap.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          })) as Task[];
+          setTasks(tasksData);
+          setCache('dashboard_tasks', tasksData, 5 * 60 * 1000); // Cache for 5 minutes
+        }
+
+        // Fetch user's submissions (these change more frequently, shorter cache)
+        const cachedSubmissions = getCached<Submission[]>(`submissions_${user.uid}`);
+        if (cachedSubmissions) {
+          setSubmissions(cachedSubmissions);
+        } else {
+          const submissionsQuery = query(
+            collection(db, "submissions"),
+            where("userId", "==", user.uid)
+          );
+          const submissionsSnap = await getDocs(submissionsQuery);
+          const submissionsData = submissionsSnap.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          })) as Submission[];
+          setSubmissions(submissionsData);
+          setCache(`submissions_${user.uid}`, submissionsData, 2 * 60 * 1000); // Cache for 2 minutes
+        }
+
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -171,7 +176,7 @@ export default function DashboardPage() {
   const userPoints = userProfile.points || 0;
   const currentLevel = getCurrentLevel(userPoints);
   const nextLevel = getNextLevel(userPoints);
-  const progressToNext = nextLevel 
+  const progressToNext = nextLevel
     ? ((userPoints - currentLevel.minPoints) / (nextLevel.minPoints - currentLevel.minPoints)) * 100
     : 100;
 
@@ -192,7 +197,7 @@ export default function DashboardPage() {
   const filteredTasks = tasks.filter(task => {
     const submitted = hasSubmitted(task.id);
     const isClosed = task.status === 'closed';
-    const isExpired = task.deadline && task.deadline.toDate() < new Date();
+    const isExpired = task.deadline && toDate(task.deadline)! < new Date();
     // Task is active only if it's explicitly open AND not expired
     const isActive = task.status === 'open' && !isExpired;
 
@@ -220,7 +225,7 @@ export default function DashboardPage() {
                   Welcome back, {userProfile.displayName || user.email}!
                 </p>
               </div>
-              
+
               {/* Store Link */}
               <Link
                 href="/store"
@@ -246,18 +251,18 @@ export default function DashboardPage() {
                   fill="#25D366"
                   className="w-5 h-5"
                 >
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
                 </svg>
                 <span className="text-sm font-medium" style={{ color: '#25D366' }}>Community</span>
               </a>
             </div>
-            
+
             <div className="flex items-center gap-4">
               {/* Gamified Rank Card */}
               <Link
                 href="/leaderboard"
                 className="flex items-center gap-3 px-5 py-2 rounded-full transition-all hover:scale-105 cursor-pointer border-2 flex-shrink-0"
-                style={{ 
+                style={{
                   background: 'var(--gradient-primary)',
                   borderColor: userRank <= 3 ? '#FFD700' : 'transparent',
                   boxShadow: userRank <= 3 ? '0 0 20px rgba(255, 215, 0, 0.3)' : 'none'
@@ -285,7 +290,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </Link>
-              
+
               {/* Profile Dropdown */}
               <div className="relative flex-shrink-0">
                 <button
@@ -295,38 +300,38 @@ export default function DashboardPage() {
                 >
                   👤
                 </button>
-              
-              {profileDropdownOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40"
-                    onClick={() => setProfileDropdownOpen(false)}
-                  />
-                  <div 
-                    className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg overflow-hidden z-50"
-                    style={{ background: 'var(--surface)', border: '1px solid var(--surface-light)' }}
-                  >
-                    <Link
-                      href="/profile"
-                      className="block px-4 py-3 transition-all hover:bg-opacity-80"
-                      style={{ color: 'var(--foreground)' }}
+
+                {profileDropdownOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
                       onClick={() => setProfileDropdownOpen(false)}
+                    />
+                    <div
+                      className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg overflow-hidden z-50"
+                      style={{ background: 'var(--surface)', border: '1px solid var(--surface-light)' }}
                     >
-                      Profile
-                    </Link>
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        logout();
-                      }}
-                      className="w-full text-left px-4 py-3 transition-all hover:bg-opacity-80"
-                      style={{ color: 'var(--danger)' }}
-                    >
-                      Sign Out
-                    </button>
-                  </div>
-                </>
-              )}
+                      <Link
+                        href="/profile"
+                        className="block px-4 py-3 transition-all hover:bg-opacity-80"
+                        style={{ color: 'var(--foreground)' }}
+                        onClick={() => setProfileDropdownOpen(false)}
+                      >
+                        Profile
+                      </Link>
+                      <button
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          logout();
+                        }}
+                        className="w-full text-left px-4 py-3 transition-all hover:bg-opacity-80"
+                        style={{ color: 'var(--danger)' }}
+                      >
+                        Sign Out
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -342,7 +347,7 @@ export default function DashboardPage() {
                   Welcome back!
                 </p>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 {/* Store Button - Mobile */}
                 <Link
@@ -368,10 +373,10 @@ export default function DashboardPage() {
                     fill="#25D366"
                     className="w-5 h-5"
                   >
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
                   </svg>
                 </a>
-              
+
                 {/* Profile Dropdown - Mobile */}
                 <div className="relative">
                   <button
@@ -381,47 +386,47 @@ export default function DashboardPage() {
                   >
                     👤
                   </button>
-                
-                {profileDropdownOpen && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-40"
-                      onClick={() => setProfileDropdownOpen(false)}
-                    />
-                    <div 
-                      className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg overflow-hidden z-50"
-                      style={{ background: 'var(--surface)', border: '1px solid var(--surface-light)' }}
-                    >
-                      <Link
-                        href="/profile"
-                        className="block px-4 py-3 transition-all hover:bg-opacity-80"
-                        style={{ color: 'var(--foreground)' }}
+
+                  {profileDropdownOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
                         onClick={() => setProfileDropdownOpen(false)}
+                      />
+                      <div
+                        className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg overflow-hidden z-50"
+                        style={{ background: 'var(--surface)', border: '1px solid var(--surface-light)' }}
                       >
-                        Profile
-                      </Link>
-                      <button
-                        onClick={() => {
-                          setProfileDropdownOpen(false);
-                          logout();
-                        }}
-                        className="w-full text-left px-4 py-3 transition-all hover:bg-opacity-80"
-                        style={{ color: 'var(--danger)' }}
-                      >
-                        Sign Out
-                      </button>
-                    </div>
-                  </>
-                )}
+                        <Link
+                          href="/profile"
+                          className="block px-4 py-3 transition-all hover:bg-opacity-80"
+                          style={{ color: 'var(--foreground)' }}
+                          onClick={() => setProfileDropdownOpen(false)}
+                        >
+                          Profile
+                        </Link>
+                        <button
+                          onClick={() => {
+                            setProfileDropdownOpen(false);
+                            logout();
+                          }}
+                          className="w-full text-left px-4 py-3 transition-all hover:bg-opacity-80"
+                          style={{ color: 'var(--danger)' }}
+                        >
+                          Sign Out
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
-            
+
             {/* Rank Card - Mobile (Full Width) */}
             <Link
               href="/leaderboard"
               className="flex items-center justify-between px-4 py-2.5 rounded-full transition-all active:scale-95 border-2 w-full"
-              style={{ 
+              style={{
                 background: 'var(--gradient-primary)',
                 borderColor: userRank <= 3 ? '#FFD700' : 'transparent',
                 boxShadow: userRank <= 3 ? '0 0 20px rgba(255, 215, 0, 0.3)' : 'none'
@@ -455,14 +460,14 @@ export default function DashboardPage() {
 
       <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Level Progress */}
-        <div 
+        <div
           className="glass-card p-6 sm:p-8 cursor-pointer transition-all hover:scale-[1.01]"
           onClick={() => setShowLevelsModal(true)}
           style={{ position: 'relative', overflow: 'hidden' }}
         >
           <div className="absolute inset-0 opacity-10"
-               style={{ background: `linear-gradient(135deg, ${currentLevel.color} 0%, transparent 100%)` }}></div>
-          
+            style={{ background: `linear-gradient(135deg, ${currentLevel.color} 0%, transparent 100%)` }}></div>
+
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
@@ -498,9 +503,9 @@ export default function DashboardPage() {
 
             <div className="relative">
               <div className="h-4 rounded-full overflow-hidden" style={{ background: 'var(--surface-light)' }}>
-                <div 
+                <div
                   className="h-full transition-all duration-500 rounded-full"
-                  style={{ 
+                  style={{
                     width: `${progressToNext}%`,
                     background: `linear-gradient(90deg, ${currentLevel.color}, ${nextLevel?.color || currentLevel.color})`
                   }}
@@ -652,8 +657,8 @@ export default function DashboardPage() {
           </div>
           {loading ? (
             <div className="text-center py-12">
-              <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin" 
-                   style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}></div>
+              <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin"
+                style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}></div>
               <p style={{ color: 'var(--muted)' }} className="mt-4">Loading tasks...</p>
             </div>
           ) : filteredTasks.length === 0 ? (
@@ -662,11 +667,11 @@ export default function DashboardPage() {
                 {filter === 'unattempted' ? '🎯' : filter === 'completed' ? '✅' : '📭'}
               </div>
               <p style={{ color: 'var(--muted)' }}>
-                {filter === 'unattempted' 
-                  ? 'No active tasks available. Check back soon!' 
+                {filter === 'unattempted'
+                  ? 'No active tasks available. Check back soon!'
                   : filter === 'completed'
-                  ? 'No completed tasks yet. Start completing tasks to see them here!'
-                  : 'No tasks available yet.'}
+                    ? 'No completed tasks yet. Start completing tasks to see them here!'
+                    : 'No tasks available yet.'}
               </p>
             </div>
           ) : (
@@ -675,13 +680,13 @@ export default function DashboardPage() {
                 const submitted = hasSubmitted(task.id);
                 const points = getSubmissionPoints(task.id);
                 const isClosed = task.status === "closed";
-                const isExpired = task.deadline && task.deadline.toDate() < new Date();
+                const isExpired = task.deadline && toDate(task.deadline)! < new Date();
 
                 return (
                   <div
                     key={task.id}
                     className="p-4 sm:p-5 rounded-xl transition-all hover:scale-[1.02] border"
-                    style={{ 
+                    style={{
                       background: submitted ? 'var(--surface)' : 'var(--surface-light)',
                       borderColor: submitted ? 'var(--success)' : 'var(--surface-light)'
                     }}
@@ -692,30 +697,30 @@ export default function DashboardPage() {
                           <h3 className="text-lg sm:text-xl font-bold" style={{ color: 'var(--foreground)' }}>
                             {task.title}
                           </h3>
-                          
+
                           {isClosed && (
                             <span className="px-3 py-1 rounded-full text-xs font-semibold"
-                                  style={{ background: 'var(--surface-light)', color: 'var(--muted)' }}>
+                              style={{ background: 'var(--surface-light)', color: 'var(--muted)' }}>
                               🔒 Closed
                             </span>
                           )}
                           {submitted && (
                             <span className="px-3 py-1 rounded-full text-xs font-semibold"
-                                  style={{ background: 'var(--success)', color: 'var(--background)' }}>
+                              style={{ background: 'var(--success)', color: 'var(--background)' }}>
                               ✓ Submitted
                             </span>
                           )}
                           {isExpired && !isClosed && (
                             <span className="px-3 py-1 rounded-full text-xs font-semibold"
-                                  style={{ background: 'var(--danger)', color: 'var(--foreground)' }}>
+                              style={{ background: 'var(--danger)', color: 'var(--foreground)' }}>
                               ⏰ Expired
                             </span>
                           )}
                           {!submitted && !isClosed && !isExpired && (
                             <span className="px-3 py-1 rounded-full text-sm font-semibold animate-pulse"
-                      style={{ background: 'var(--success)', color: 'var(--background)' }}>
-                  ✓ Open
-                </span>
+                              style={{ background: 'var(--success)', color: 'var(--background)' }}>
+                              ✓ Open
+                            </span>
                           )}
                         </div>
 
@@ -734,7 +739,7 @@ export default function DashboardPage() {
                             <div className="flex items-center gap-1 sm:gap-2">
                               <span className="text-base sm:text-lg">📅</span>
                               <span style={{ color: 'var(--muted)' }}>
-                                {task.deadline.toDate().toLocaleDateString()} at {task.deadline.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {toDate(task.deadline)?.toLocaleDateString()} at {toDate(task.deadline)?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </div>
                           )}
@@ -770,7 +775,7 @@ export default function DashboardPage() {
                         )}
                         {(isClosed || isExpired) && !submitted && (
                           <div className="px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-center text-sm font-medium whitespace-nowrap flex-1 sm:flex-none"
-                               style={{ background: 'var(--surface)', color: 'var(--muted)' }}>
+                            style={{ background: 'var(--surface)', color: 'var(--muted)' }}>
                             Unavailable
                           </div>
                         )}
@@ -785,12 +790,12 @@ export default function DashboardPage() {
 
         {/* Levels Modal */}
         {showLevelsModal && (
-          <div 
+          <div
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
             style={{ background: 'rgba(0, 0, 0, 0.8)' }}
             onClick={() => setShowLevelsModal(false)}
           >
-            <div 
+            <div
               className="glass-card max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8 animate-fadeIn"
               onClick={(e) => e.stopPropagation()}
             >
@@ -815,12 +820,12 @@ export default function DashboardPage() {
                 {LEVEL_TIERS.map((tier, index) => {
                   const isCurrentTier = tier.level === currentLevel.level;
                   const isUnlocked = userPoints >= tier.minPoints;
-                  
+
                   return (
-                    <div 
+                    <div
                       key={tier.level}
                       className={`p-6 rounded-xl border-2 transition-all ${isCurrentTier ? 'scale-105' : ''}`}
-                      style={{ 
+                      style={{
                         borderColor: isCurrentTier ? tier.color : 'var(--surface-light)',
                         background: isCurrentTier ? `linear-gradient(135deg, ${tier.color}15, transparent)` : 'var(--surface)',
                         opacity: isUnlocked ? 1 : 0.6
@@ -836,13 +841,13 @@ export default function DashboardPage() {
                               </h3>
                               {isCurrentTier && (
                                 <span className="px-3 py-1 rounded-full text-xs font-bold animate-pulse"
-                                      style={{ background: tier.color, color: '#000' }}>
+                                  style={{ background: tier.color, color: '#000' }}>
                                   CURRENT TIER
                                 </span>
                               )}
                               {!isUnlocked && (
                                 <span className="px-3 py-1 rounded-full text-xs font-semibold"
-                                      style={{ background: 'var(--surface-light)', color: 'var(--muted)' }}>
+                                  style={{ background: 'var(--surface-light)', color: 'var(--muted)' }}>
                                   🔒 Locked
                                 </span>
                               )}
@@ -868,7 +873,7 @@ export default function DashboardPage() {
                         </h4>
                         <ul className="space-y-1">
                           {tier.rewards.map((reward, i) => (
-                            <li 
+                            <li
                               key={i}
                               className="text-sm flex items-start gap-2"
                               style={{ color: 'var(--muted)' }}

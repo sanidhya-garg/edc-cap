@@ -2,17 +2,16 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { collection, query, orderBy, limit, getDocs, where } from "firebase/firestore";
+import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { db } from "@/lib/firebase";
 import { UserProfile } from "@/lib/types";
+import { getCached, setCache } from "@/lib/cache";
 
 export default function LeaderboardPage() {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const router = useRouter();
   const [topUsers, setTopUsers] = useState<UserProfile[]>([]);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [userRank, setUserRank] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,7 +22,15 @@ export default function LeaderboardPage() {
 
     const fetchLeaderboard = async () => {
       try {
-        // Fetch top 10 users
+        // Check cache first
+        const cachedTopUsers = getCached<UserProfile[]>('leaderboard_top10');
+        if (cachedTopUsers) {
+          setTopUsers(cachedTopUsers);
+          setLoading(false);
+          return;
+        }
+
+        // Fetch only top 10 users - this is the optimized query (10 reads instead of 25K!)
         const topUsersQuery = query(
           collection(db, "users"),
           orderBy("points", "desc"),
@@ -35,53 +42,11 @@ export default function LeaderboardPage() {
           ...doc.data()
         })) as UserProfile[];
         setTopUsers(topUsersData);
+        setCache('leaderboard_top10', topUsersData, 2 * 60 * 1000); // Cache for 2 minutes
 
-        // Fetch current user data
-        const userQuery = query(
-          collection(db, "users"),
-          where("uid", "==", user.uid)
-        );
-        const userSnap = await getDocs(userQuery);
-        if (!userSnap.empty) {
-          const userData = {
-            uid: userSnap.docs[0].id,
-            ...userSnap.docs[0].data()
-          } as UserProfile;
-          setCurrentUser(userData);
-
-          // Calculate rank with tie handling
-          const allUsersQuery = query(
-            collection(db, "users"),
-            orderBy("points", "desc")
-          );
-          const allUsersSnap = await getDocs(allUsersQuery);
-          
-          // Find user's rank considering ties
-          let rank = 1;
-          let prevPoints = null;
-          let sameRankCount = 0;
-          
-          for (let i = 0; i < allUsersSnap.docs.length; i++) {
-            const doc = allUsersSnap.docs[i];
-            const points = doc.data().points || 0;
-            
-            if (prevPoints !== null && points < prevPoints) {
-              // Different points, update rank by adding count of users with previous points
-              rank += sameRankCount;
-              sameRankCount = 1;
-            } else {
-              // Same points or first user
-              sameRankCount++;
-            }
-            
-            if (doc.id === user.uid) {
-              setUserRank(rank);
-              break;
-            }
-            
-            prevPoints = points;
-          }
-        }
+        // REMOVED: No longer fetch all users for rank calculation
+        // User's rank comes from userProfile.rank (set when points change)
+        // REMOVED: No longer query for current user data - already in context
       } catch (error) {
         console.error("Error fetching leaderboard:", error);
       } finally {
@@ -95,8 +60,8 @@ export default function LeaderboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--background)' }}>
-        <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin" 
-             style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}></div>
+        <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin"
+          style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}></div>
       </div>
     );
   }
@@ -128,29 +93,29 @@ export default function LeaderboardPage() {
 
       <div className="max-w-4xl mx-auto p-6 space-y-6">
         {/* Current User Rank Card */}
-        {currentUser && userRank && (
-          <div className="p-6 rounded-xl border animate-fadeIn" 
-               style={{ 
-                 background: 'var(--gradient-primary)',
-                 borderColor: 'transparent'
-               }}>
+        {userProfile && (
+          <div className="p-6 rounded-xl border animate-fadeIn"
+            style={{
+              background: 'var(--gradient-primary)',
+              borderColor: 'transparent'
+            }}>
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-sm opacity-90" style={{ color: 'var(--foreground)' }}>Your Rank</p>
                 <h2 className="text-5xl font-bold mt-1" style={{ color: 'var(--foreground)' }}>
-                  #{userRank}
+                  #{userProfile.rank || '-'}
                 </h2>
               </div>
               <div className="text-right">
                 <p className="text-sm opacity-90" style={{ color: 'var(--foreground)' }}>Your Points</p>
                 <h2 className="text-5xl font-bold mt-1" style={{ color: 'var(--foreground)' }}>
-                  {currentUser.points || 0}
+                  {userProfile.points || 0}
                 </h2>
               </div>
             </div>
             <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.2)' }}>
               <p className="font-medium" style={{ color: 'var(--foreground)' }}>
-                {currentUser.displayName || currentUser.email}
+                {userProfile.displayName || userProfile.email}
               </p>
             </div>
           </div>
@@ -172,7 +137,7 @@ export default function LeaderboardPage() {
             ) : (
               topUsers.map((u, index) => {
                 const isCurrentUser = u.uid === user?.uid;
-                
+
                 // Calculate rank considering ties
                 let rank = 1;
                 for (let i = 0; i < index; i++) {
@@ -190,9 +155,9 @@ export default function LeaderboardPage() {
                   }
                   rank = prevRank;
                 }
-                
+
                 const rankEmoji = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "";
-                
+
                 return (
                   <div
                     key={u.uid}
@@ -204,7 +169,7 @@ export default function LeaderboardPage() {
                   >
                     {/* Rank */}
                     <div className="flex items-center justify-center w-16 h-16 rounded-full font-bold text-xl"
-                         style={{ background: 'var(--surface)' }}>
+                      style={{ background: 'var(--surface)' }}>
                       <span style={{ color: rank <= 3 ? 'var(--warning)' : 'var(--foreground)' }}>
                         {rankEmoji || `#${rank}`}
                       </span>
@@ -218,7 +183,7 @@ export default function LeaderboardPage() {
                         </p>
                         {isCurrentUser && (
                           <span className="px-3 py-1 rounded-full text-xs font-bold"
-                                style={{ background: 'var(--primary)', color: 'var(--background)' }}>
+                            style={{ background: 'var(--primary)', color: 'var(--background)' }}>
                             You
                           </span>
                         )}

@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, Timestamp } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, Timestamp, increment } from "firebase/firestore";
+import { invalidateCache } from "@/lib/cache";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { db } from "@/lib/firebase";
 import { uploadFile } from "@/lib/storage";
@@ -145,6 +146,17 @@ export default function TaskDetailPage() {
 
         console.log("Creating submission document...");
         await addDoc(collection(db, "submissions"), submissionData);
+
+        // Update task counters for admin panel optimization
+        await updateDoc(doc(db, "tasks", id as string), {
+          pendingCount: increment(1),
+          totalSubmissions: increment(1)
+        });
+
+        // Invalidate dashboard cache so new submission shows
+        invalidateCache(`submissions_${user.uid}`);
+        invalidateCache('dashboard_tasks');
+
         console.log("Submission created successfully!");
         router.push("/dashboard");
       }
@@ -159,8 +171,8 @@ export default function TaskDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--background)' }}>
-        <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin" 
-             style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}></div>
+        <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin"
+          style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}></div>
       </div>
     );
   }
@@ -171,9 +183,9 @@ export default function TaskDetailPage() {
         <div className="text-center">
           <div className="text-6xl mb-4">❌</div>
           <p className="text-xl mb-4" style={{ color: 'var(--danger)' }}>Task not found</p>
-          <Link href="/dashboard" 
-                className="px-6 py-3 rounded-lg font-medium inline-block"
-                style={{ background: 'var(--gradient-primary)', color: 'var(--foreground)' }}>
+          <Link href="/dashboard"
+            className="px-6 py-3 rounded-lg font-medium inline-block"
+            style={{ background: 'var(--gradient-primary)', color: 'var(--foreground)' }}>
             Back to Dashboard
           </Link>
         </div>
@@ -192,9 +204,9 @@ export default function TaskDetailPage() {
       {/* Header */}
       <div className="border-b" style={{ borderColor: 'var(--surface-light)', background: 'var(--surface)' }}>
         <div className="max-w-3xl mx-auto px-6 py-4">
-          <Link href="/dashboard" 
-                className="inline-flex items-center gap-2 font-medium transition-all hover:scale-105"
-                style={{ color: 'var(--primary)' }}>
+          <Link href="/dashboard"
+            className="inline-flex items-center gap-2 font-medium transition-all hover:scale-105"
+            style={{ color: 'var(--primary)' }}>
             ← Back to Dashboard
           </Link>
         </div>
@@ -210,17 +222,17 @@ export default function TaskDetailPage() {
             <div className="flex items-center gap-3 flex-wrap">
               {isClosed ? (
                 <span className="px-3 py-1 rounded-full text-sm font-semibold"
-                      style={{ background: 'var(--surface-light)', color: 'var(--muted)' }}>
+                  style={{ background: 'var(--surface-light)', color: 'var(--muted)' }}>
                   🔒 Closed
                 </span>
               ) : isExpired ? (
                 <span className="px-3 py-1 rounded-full text-sm font-semibold"
-                      style={{ background: 'var(--danger)', color: 'var(--foreground)' }}>
+                  style={{ background: 'var(--danger)', color: 'var(--foreground)' }}>
                   ⏰ Expired
                 </span>
               ) : (
                 <span className="px-3 py-1 rounded-full text-sm font-semibold animate-pulse"
-                      style={{ background: 'var(--success)', color: 'var(--background)' }}>
+                  style={{ background: 'var(--success)', color: 'var(--background)' }}>
                   ✓ Open
                 </span>
               )}
@@ -239,16 +251,16 @@ export default function TaskDetailPage() {
 
           {/* Task Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 rounded-lg border transition-all hover:scale-[1.02]" 
-                 style={{ background: 'var(--surface-light)', borderColor: 'var(--surface-lighter)' }}>
+            <div className="p-4 rounded-lg border transition-all hover:scale-[1.02]"
+              style={{ background: 'var(--surface-light)', borderColor: 'var(--surface-lighter)' }}>
               <div className="text-sm mb-1" style={{ color: 'var(--muted)' }}>Max Points</div>
               <div className="text-2xl font-bold" style={{ color: 'var(--accent)' }}>
                 {task.maxPoints} pts
               </div>
             </div>
             {task.deadline && (
-              <div className="p-4 rounded-lg border transition-all hover:scale-[1.02]" 
-                   style={{ background: 'var(--surface-light)', borderColor: 'var(--surface-lighter)' }}>
+              <div className="p-4 rounded-lg border transition-all hover:scale-[1.02]"
+                style={{ background: 'var(--surface-light)', borderColor: 'var(--surface-lighter)' }}>
                 <div className="text-sm mb-1" style={{ color: 'var(--muted)' }}>Deadline</div>
                 <div className="text-lg font-semibold" style={{ color: 'var(--foreground)' }}>
                   {task.deadline.toDate().toLocaleDateString()} at{" "}
@@ -278,8 +290,8 @@ export default function TaskDetailPage() {
               {isEditing ? (
                 <div>
                   {error && (
-                    <div className="mb-4 p-3 rounded-lg border" 
-                         style={{ background: 'var(--danger-light)', borderColor: 'var(--danger)', color: 'var(--danger)' }}>
+                    <div className="mb-4 p-3 rounded-lg border"
+                      style={{ background: 'var(--danger-light)', borderColor: 'var(--danger)', color: 'var(--danger)' }}>
                       {error}
                     </div>
                   )}
@@ -295,8 +307,8 @@ export default function TaskDetailPage() {
                         type="file"
                         onChange={(e) => setFile(e.target.files?.[0] || null)}
                         className="w-full rounded-lg p-3 border transition-all focus:outline-none focus:ring-2"
-                        style={{ 
-                          background: 'var(--surface-light)', 
+                        style={{
+                          background: 'var(--surface-light)',
                           borderColor: 'var(--surface-lighter)',
                           color: 'var(--foreground)'
                         }}
@@ -310,8 +322,8 @@ export default function TaskDetailPage() {
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
                         className="w-full rounded-lg p-3 border transition-all focus:outline-none focus:ring-2"
-                        style={{ 
-                          background: 'var(--surface-light)', 
+                        style={{
+                          background: 'var(--surface-light)',
                           borderColor: 'var(--surface-lighter)',
                           color: 'var(--foreground)'
                         }}
@@ -324,7 +336,7 @@ export default function TaskDetailPage() {
                         type="submit"
                         disabled={submitting}
                         className="flex-1 py-3 rounded-lg font-semibold transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                        style={{ 
+                        style={{
                           background: submitting ? 'var(--surface-light)' : 'var(--gradient-primary)',
                           color: 'var(--foreground)'
                         }}
@@ -341,7 +353,7 @@ export default function TaskDetailPage() {
                         }}
                         disabled={submitting}
                         className="px-6 py-3 rounded-lg font-semibold transition-all hover:scale-[1.02] disabled:opacity-50"
-                        style={{ 
+                        style={{
                           background: 'var(--surface-light)',
                           color: 'var(--foreground)'
                         }}
@@ -378,8 +390,8 @@ export default function TaskDetailPage() {
                     </span>
                   </div>
                   {submission.reviewed ? (
-                    <div className="mt-4 p-4 border rounded-lg" 
-                         style={{ background: 'var(--success-light)', borderColor: 'var(--success)' }}>
+                    <div className="mt-4 p-4 border rounded-lg"
+                      style={{ background: 'var(--success-light)', borderColor: 'var(--success)' }}>
                       <p className="font-semibold flex items-center gap-2" style={{ color: 'var(--success)' }}>
                         ✓ Reviewed
                       </p>
@@ -393,8 +405,8 @@ export default function TaskDetailPage() {
                       )}
                     </div>
                   ) : (
-                    <div className="mt-4 p-4 border rounded-lg" 
-                         style={{ background: 'var(--warning-light)', borderColor: 'var(--warning)' }}>
+                    <div className="mt-4 p-4 border rounded-lg"
+                      style={{ background: 'var(--warning-light)', borderColor: 'var(--warning)' }}>
                       <p className="flex items-center gap-2" style={{ color: 'var(--warning)' }}>
                         ⏳ Pending review
                       </p>
@@ -411,8 +423,8 @@ export default function TaskDetailPage() {
                     Submit Your Work
                   </h2>
                   {error && (
-                    <div className="mb-4 p-3 rounded-lg border" 
-                         style={{ background: 'var(--danger-light)', borderColor: 'var(--danger)', color: 'var(--danger)' }}>
+                    <div className="mb-4 p-3 rounded-lg border"
+                      style={{ background: 'var(--danger-light)', borderColor: 'var(--danger)', color: 'var(--danger)' }}>
                       {error}
                     </div>
                   )}
@@ -425,8 +437,8 @@ export default function TaskDetailPage() {
                         type="file"
                         onChange={(e) => setFile(e.target.files?.[0] || null)}
                         className="w-full rounded-lg p-3 border transition-all focus:outline-none focus:ring-2"
-                        style={{ 
-                          background: 'var(--surface-light)', 
+                        style={{
+                          background: 'var(--surface-light)',
                           borderColor: 'var(--surface-lighter)',
                           color: 'var(--foreground)'
                         }}
@@ -441,8 +453,8 @@ export default function TaskDetailPage() {
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
                         className="w-full rounded-lg p-3 border transition-all focus:outline-none focus:ring-2"
-                        style={{ 
-                          background: 'var(--surface-light)', 
+                        style={{
+                          background: 'var(--surface-light)',
                           borderColor: 'var(--surface-lighter)',
                           color: 'var(--foreground)'
                         }}
@@ -454,7 +466,7 @@ export default function TaskDetailPage() {
                       type="submit"
                       disabled={submitting || !file}
                       className="w-full py-3 rounded-lg font-semibold transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                      style={{ 
+                      style={{
                         background: submitting || !file ? 'var(--surface-light)' : 'var(--gradient-primary)',
                         color: 'var(--foreground)'
                       }}
@@ -469,8 +481,8 @@ export default function TaskDetailPage() {
                     {isClosed ? "🔒" : "⏰"}
                   </div>
                   <p className="text-lg font-semibold mb-2" style={{ color: 'var(--muted)' }}>
-                    {isClosed 
-                      ? "This task is closed" 
+                    {isClosed
+                      ? "This task is closed"
                       : "This task has expired"}
                   </p>
                   <p className="text-sm" style={{ color: 'var(--muted)' }}>

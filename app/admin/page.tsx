@@ -55,40 +55,22 @@ function AdminDashboard() {
       const tasksSnap = await getDocs(tasksQuery);
       console.log("Tasks snapshot size:", tasksSnap.size);
 
-      // Fetch all submissions
-      const submissionsSnap = await getDocs(collection(db, "submissions"));
-
-      // Calculate pending and total submissions per task
-      const submissionsByTask: Record<
-        string,
-        { pending: number; total: number }
-      > = {};
-      submissionsSnap.docs.forEach((doc) => {
-        const data = doc.data();
-        const taskId = data.taskId;
-        if (!submissionsByTask[taskId]) {
-          submissionsByTask[taskId] = { pending: 0, total: 0 };
-        }
-        submissionsByTask[taskId].total++;
-        if (!data.reviewed) {
-          submissionsByTask[taskId].pending++;
-        }
-      });
-
+      // OPTIMIZATION: Use counters stored on task documents instead of fetching all submissions
+      // pendingCount and totalSubmissions are now stored directly on each task document
+      // and updated when submissions are created/reviewed
       const tasksData = tasksSnap.docs.map((doc) => {
-        const taskId = doc.id;
-        const stats = submissionsByTask[taskId] || { pending: 0, total: 0 };
+        const data = doc.data();
         return {
-          id: taskId,
-          ...doc.data(),
-          pendingCount: stats.pending,
-          totalSubmissions: stats.total,
+          id: doc.id,
+          ...data,
+          pendingCount: data.pendingCount || 0,
+          totalSubmissions: data.totalSubmissions || 0,
         };
       }) as TaskWithStats[];
 
       // Calculate total pending across all tasks
-      const total = Object.values(submissionsByTask).reduce(
-        (sum, stats) => sum + stats.pending,
+      const total = tasksData.reduce(
+        (sum, task) => sum + (task.pendingCount || 0),
         0
       );
       setTotalPending(total);
