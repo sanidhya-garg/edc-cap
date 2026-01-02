@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/app/providers/AuthProvider";
-import { collection, addDoc, query, where, getDocs, orderBy, Timestamp } from "firebase/firestore";
+import { collection, addDoc, query, where, getDocs, orderBy, Timestamp, updateDoc, doc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { StoreItem, Order } from "@/lib/types";
 import PizZip from "pizzip";
@@ -12,7 +12,7 @@ import Docxtemplater from "docxtemplater";
 import { getCached, setCache } from "@/lib/cache";
 
 export default function StorePage() {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, refreshProfile } = useAuth();
   const router = useRouter();
   const userPoints = userProfile?.points || 0;
   const [showOrderForm, setShowOrderForm] = useState(false);
@@ -178,6 +178,15 @@ export default function StorePage() {
       };
 
       const docRef = await addDoc(collection(db, "orders"), orderData);
+
+      // CRITICAL: Deduct points from user
+      if (orderData.pointsUsed > 0) {
+        await updateDoc(doc(db, "users", orderData.userId), {
+          points: increment(-orderData.pointsUsed)
+        });
+        // Refresh local profile to show updated balance
+        await refreshProfile();
+      }
 
       // Update local orders map
       const newOrder: Order = { id: docRef.id, ...orderData };
