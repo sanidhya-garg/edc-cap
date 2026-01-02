@@ -73,6 +73,12 @@ export default function SubmissionsPage() {
     try {
       const pointsToAward = points[submissionId] || 0;
 
+      if (pointsToAward < 0 || pointsToAward > task.maxPoints) {
+        alert(`Please enter a value between 0 and ${task.maxPoints}`);
+        setReviewingId(null);
+        return;
+      }
+
       console.log("Awarding points...", { submissionId, userId, pointsToAward });
 
       // Fetch the current submission from database to get accurate previous points
