@@ -600,7 +600,7 @@ export default function DashboardPage() {
             <div className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--warning)' }}>
               {tasks.filter(t => {
                 const isOpen = t.status === 'open';
-                const notExpired = !t.deadline || t.deadline.toDate() >= new Date();
+                const notExpired = !t.deadline || toDate(t.deadline)! >= new Date();
                 const notCompleted = !hasSubmitted(t.id);
                 // Task is active only if explicitly open AND not expired
                 return isOpen && notExpired && notCompleted;
@@ -634,7 +634,7 @@ export default function DashboardPage() {
                 border: filter === 'unattempted' ? 'none' : '1px solid var(--surface-light)'
               }}
             >
-              🔥 Active ({tasks.filter(t => !hasSubmitted(t.id) && t.status === 'open' && (!t.deadline || t.deadline.toDate() >= new Date())).length})
+              🔥 Active ({tasks.filter(t => !hasSubmitted(t.id) && t.status === 'open' && (!t.deadline || toDate(t.deadline)! >= new Date())).length})
             </button>
             <button
               onClick={() => setFilter('completed')}
