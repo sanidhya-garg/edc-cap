@@ -9,6 +9,7 @@ import { db } from "@/lib/firebase";
 import { StoreItem, Order } from "@/lib/types";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
+import { getCached, setCache } from "@/lib/cache";
 
 export default function StorePage() {
   const { user, userProfile } = useAuth();
@@ -36,9 +37,12 @@ export default function StorePage() {
       router.replace("/auth/login");
       return;
     }
-    
-    // Pre-fill form data from user profile
-    if (userProfile) {
+    fetchStoreData();
+  }, [user?.uid, router]);
+
+  // Separate effect for pre-filling form to avoid re-fetching data
+  useEffect(() => {
+    if (userProfile && !orderFormData.name) {
       setOrderFormData({
         name: userProfile.displayName || "",
         email: userProfile.email || "",
@@ -50,28 +54,33 @@ export default function StorePage() {
         pincode: ""
       });
     }
-
-    fetchStoreData();
-  }, [user, userProfile, router]);
+  }, [userProfile?.displayName, userProfile?.email, userProfile?.phoneNumber]);
 
   const fetchStoreData = async () => {
     try {
       setIsLoading(true);
-      
-      // Fetch store items
-      const itemsQuery = query(
-        collection(db, "storeItems"),
-        orderBy("pointsRequired", "asc")
-      );
-      const itemsSnap = await getDocs(itemsQuery);
-      const items = itemsSnap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as StoreItem[];
-      
-      // Filter active and non-paused items
-      const activeItems = items.filter(item => item.isActive && !item.isPaused);
-      setStoreItems(activeItems);
+
+      // Check cache first for store items
+      const cachedItems = getCached<StoreItem[]>('store_items');
+      if (cachedItems) {
+        setStoreItems(cachedItems);
+      } else {
+        // Fetch store items
+        const itemsQuery = query(
+          collection(db, "storeItems"),
+          orderBy("pointsRequired", "asc")
+        );
+        const itemsSnap = await getDocs(itemsQuery);
+        const items = itemsSnap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as StoreItem[];
+
+        // Filter active and non-paused items
+        const activeItems = items.filter(item => item.isActive && !item.isPaused);
+        setStoreItems(activeItems);
+        setCache('store_items', activeItems, 5 * 60 * 1000); // Cache for 5 minutes
+      }
 
       // Fetch user's orders
       if (user) {
@@ -189,22 +198,22 @@ export default function StorePage() {
   const generateCampusAmbassadorLetter = async () => {
     try {
       const userName = userProfile?.displayName || user?.displayName || 'User';
-      const currentDate = new Date().toLocaleDateString('en-IN', { 
-        day: 'numeric', 
-        month: 'long', 
-        year: 'numeric' 
+      const currentDate = new Date().toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
       });
-      
+
       // Fetch the template document
       const response = await fetch('/assets/1.docx');
       const templateBlob = await response.blob();
-      
+
       // Read the template as array buffer
       const arrayBuffer = await templateBlob.arrayBuffer();
-      
+
       // Load the docx file as binary content
       const zip = new PizZip(arrayBuffer);
-      
+
       // Create a docxtemplater instance
       const doc = new Docxtemplater(zip, {
         paragraphLoop: true,
@@ -214,7 +223,7 @@ export default function StorePage() {
           end: '}}'
         }
       });
-      
+
       // Set the template variables
       doc.render({
         Name: userName,
@@ -223,7 +232,7 @@ export default function StorePage() {
         Date: currentDate,
         date: currentDate
       });
-      
+
       // Generate the DOCX document
       const docxBlob = doc.getZip().generate({
         type: "blob",
@@ -233,12 +242,12 @@ export default function StorePage() {
       // Since we can't directly convert DOCX to PDF in the browser,
       // we'll use an API approach - create a form and submit to a conversion service
       // For now, let's generate a better formatted PDF from the template content
-      
+
       // Note: For production, you'd want to use a backend service to convert DOCX to PDF
       // For now, I'll create a temporary solution using the template
-      
+
       alert("Generating PDF from template...");
-      
+
       // Download as DOCX for now - conversion to PDF requires backend/API
       const url = window.URL.createObjectURL(docxBlob);
       const a = document.createElement('a');
@@ -261,8 +270,8 @@ export default function StorePage() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--background)' }}>
       {/* Header Bar */}
-      <div className="border-b sticky top-0 z-50 backdrop-blur-lg" 
-           style={{ borderColor: 'var(--surface-light)', background: 'rgba(var(--surface-rgb), 0.8)' }}>
+      <div className="border-b sticky top-0 z-50 backdrop-blur-lg"
+        style={{ borderColor: 'var(--surface-light)', background: 'rgba(var(--surface-rgb), 0.8)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-3xl">🏪</span>
@@ -288,14 +297,14 @@ export default function StorePage() {
       <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
         {/* Points Balance Card - Hero Style */}
         <div className="relative overflow-hidden rounded-2xl"
-             style={{ background: 'var(--gradient-primary)' }}>
+          style={{ background: 'var(--gradient-primary)' }}>
           <div className="absolute inset-0 opacity-10">
             <div className="absolute -right-10 -top-10 text-9xl">⭐</div>
             <div className="absolute -left-10 -bottom-10 text-9xl">💎</div>
           </div>
           <div className="relative p-6 sm:p-8 text-center">
-            <p className="text-xs sm:text-sm uppercase tracking-widest mb-2 opacity-90" 
-               style={{ color: 'var(--foreground)' }}>
+            <p className="text-xs sm:text-sm uppercase tracking-widest mb-2 opacity-90"
+              style={{ color: 'var(--foreground)' }}>
               Your Points Balance
             </p>
             <div className="flex items-center justify-center gap-3 mb-4">
@@ -304,7 +313,7 @@ export default function StorePage() {
               </div>
               <span className="text-3xl">⭐</span>
             </div>
-            <Link 
+            <Link
               href="/dashboard"
               className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full font-semibold text-sm transition-all hover:scale-105"
               style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
@@ -351,7 +360,7 @@ export default function StorePage() {
                     {/* Unlocked Badge */}
                     {isLetterUnlocked && (
                       <div className="absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold z-10 shadow-lg animate-pulse"
-                           style={{ background: 'var(--success)', color: 'var(--background)' }}>
+                        style={{ background: 'var(--success)', color: 'var(--background)' }}>
                         ✓ UNLOCKED
                       </div>
                     )}
@@ -388,9 +397,9 @@ export default function StorePage() {
                         {!isLetterUnlocked && (
                           <div>
                             <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface-light)' }}>
-                              <div 
+                              <div
                                 className="h-full transition-all duration-500 rounded-full"
-                                style={{ 
+                                style={{
                                   width: `${progress}%`,
                                   background: 'var(--gradient-primary)'
                                 }}
@@ -440,12 +449,12 @@ export default function StorePage() {
                     {/* Ordered/Unlocked Badge */}
                     {isOrdered ? (
                       <div className="absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold z-10 shadow-lg"
-                           style={{ background: '#8B5CF6', color: 'white' }}>
+                        style={{ background: '#8B5CF6', color: 'white' }}>
                         {userOrder.status.toUpperCase()}
                       </div>
                     ) : isUnlocked && (
                       <div className="absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-bold z-10 shadow-lg animate-pulse"
-                           style={{ background: 'var(--success)', color: 'var(--background)' }}>
+                        style={{ background: 'var(--success)', color: 'var(--background)' }}>
                         ✓ UNLOCKED
                       </div>
                     )}
@@ -472,7 +481,7 @@ export default function StorePage() {
                           )}
                           {!isUnlocked && !item.imageUrl && (
                             <div className="absolute inset-0 flex items-center justify-center rounded-2xl"
-                                 style={{ background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }}>
+                              style={{ background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }}>
                               <span className="text-5xl">🔒</span>
                             </div>
                           )}
@@ -497,9 +506,9 @@ export default function StorePage() {
                             <span>{Math.round(progress)}%</span>
                           </div>
                           <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--surface-light)' }}>
-                            <div 
+                            <div
                               className="h-full transition-all duration-500 rounded-full"
-                              style={{ 
+                              style={{
                                 width: `${progress}%`,
                                 background: 'var(--gradient-primary)'
                               }}
@@ -513,7 +522,7 @@ export default function StorePage() {
 
                       {/* Points Required Badge */}
                       <div className="mb-4 flex items-center justify-center gap-2 py-3 px-5 rounded-xl"
-                           style={{ background: 'var(--surface-light)' }}>
+                        style={{ background: 'var(--surface-light)' }}>
                         <span className="text-2xl">⭐</span>
                         <span className="font-bold" style={{ color: 'var(--foreground)' }}>
                           {item.pointsRequired} Points
@@ -523,11 +532,11 @@ export default function StorePage() {
                       {/* Action Button */}
                       {isOrdered ? (
                         <div className="w-full py-3.5 rounded-xl font-semibold text-base text-center border-2"
-                             style={{ 
-                               borderColor: '#8B5CF6', 
-                               color: '#8B5CF6', 
-                               background: 'rgba(139, 92, 246, 0.1)'
-                             }}>
+                          style={{
+                            borderColor: '#8B5CF6',
+                            color: '#8B5CF6',
+                            background: 'rgba(139, 92, 246, 0.1)'
+                          }}>
                           ✓ Order Status: {userOrder.status}
                         </div>
                       ) : isUnlocked ? (
@@ -552,12 +561,12 @@ export default function StorePage() {
                         </button>
                       ) : (
                         <div className="w-full py-3.5 rounded-xl font-semibold text-sm text-center border-2"
-                             style={{ 
-                               borderColor: 'var(--surface-lighter)', 
-                               color: 'var(--muted)', 
-                               background: 'var(--surface-lighter)',
-                               borderStyle: 'dashed'
-                             }}>
+                          style={{
+                            borderColor: 'var(--surface-lighter)',
+                            color: 'var(--muted)',
+                            background: 'var(--surface-lighter)',
+                            borderStyle: 'dashed'
+                          }}>
                           🔒 Need {pointsNeeded} more point{pointsNeeded !== 1 ? 's' : ''}
                         </div>
                       )}
@@ -575,8 +584,8 @@ export default function StorePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0, 0, 0, 0.7)' }}>
           <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl" style={{ background: 'var(--surface)' }}>
             {/* Modal Header */}
-            <div className="sticky top-0 z-10 px-6 py-4 border-b backdrop-blur-lg" 
-                 style={{ borderColor: 'var(--surface-light)', background: 'rgba(var(--surface-rgb), 0.95)' }}>
+            <div className="sticky top-0 z-10 px-6 py-4 border-b backdrop-blur-lg"
+              style={{ borderColor: 'var(--surface-light)', background: 'rgba(var(--surface-rgb), 0.95)' }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="text-3xl">{selectedItem.icon}</span>
@@ -612,8 +621,8 @@ export default function StorePage() {
                   value={orderFormData.name}
                   readOnly
                   className="w-full px-4 py-3 rounded-lg text-base border-2 cursor-not-allowed"
-                  style={{ 
-                    background: 'var(--surface-light)', 
+                  style={{
+                    background: 'var(--surface-light)',
                     borderColor: 'var(--surface-lighter)',
                     color: 'var(--muted)'
                   }}
@@ -631,8 +640,8 @@ export default function StorePage() {
                   value={orderFormData.email}
                   readOnly
                   className="w-full px-4 py-3 rounded-lg text-base border-2 cursor-not-allowed"
-                  style={{ 
-                    background: 'var(--surface-light)', 
+                  style={{
+                    background: 'var(--surface-light)',
                     borderColor: 'var(--surface-lighter)',
                     color: 'var(--muted)'
                   }}
@@ -650,8 +659,8 @@ export default function StorePage() {
                   value={orderFormData.phone}
                   readOnly
                   className="w-full px-4 py-3 rounded-lg text-base border-2 cursor-not-allowed"
-                  style={{ 
-                    background: 'var(--surface-light)', 
+                  style={{
+                    background: 'var(--surface-light)',
                     borderColor: 'var(--surface-lighter)',
                     color: 'var(--muted)'
                   }}
@@ -673,8 +682,8 @@ export default function StorePage() {
                   placeholder="House/Flat No., Street Name"
                   required
                   className="w-full px-4 py-3 rounded-lg text-base border-2 transition-all focus:outline-none focus:border-[var(--primary)]"
-                  style={{ 
-                    background: 'var(--background)', 
+                  style={{
+                    background: 'var(--background)',
                     borderColor: 'var(--surface-light)',
                     color: 'var(--foreground)'
                   }}
@@ -693,8 +702,8 @@ export default function StorePage() {
                   onChange={handleOrderFormChange}
                   placeholder="Landmark, Area (Optional)"
                   className="w-full px-4 py-3 rounded-lg text-base border-2 transition-all focus:outline-none focus:border-[var(--primary)]"
-                  style={{ 
-                    background: 'var(--background)', 
+                  style={{
+                    background: 'var(--background)',
                     borderColor: 'var(--surface-light)',
                     color: 'var(--foreground)'
                   }}
@@ -715,8 +724,8 @@ export default function StorePage() {
                     placeholder="City"
                     required
                     className="w-full px-4 py-3 rounded-lg text-base border-2 transition-all focus:outline-none focus:border-[var(--primary)]"
-                    style={{ 
-                      background: 'var(--background)', 
+                    style={{
+                      background: 'var(--background)',
                       borderColor: 'var(--surface-light)',
                       color: 'var(--foreground)'
                     }}
@@ -734,8 +743,8 @@ export default function StorePage() {
                     placeholder="State"
                     required
                     className="w-full px-4 py-3 rounded-lg text-base border-2 transition-all focus:outline-none focus:border-[var(--primary)]"
-                    style={{ 
-                      background: 'var(--background)', 
+                    style={{
+                      background: 'var(--background)',
                       borderColor: 'var(--surface-light)',
                       color: 'var(--foreground)'
                     }}
@@ -758,8 +767,8 @@ export default function StorePage() {
                   pattern="[0-9]{6}"
                   maxLength={6}
                   className="w-full px-4 py-3 rounded-lg text-base border-2 transition-all focus:outline-none focus:border-[var(--primary)]"
-                  style={{ 
-                    background: 'var(--background)', 
+                  style={{
+                    background: 'var(--background)',
                     borderColor: 'var(--surface-light)',
                     color: 'var(--foreground)'
                   }}

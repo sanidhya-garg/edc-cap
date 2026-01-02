@@ -29,7 +29,7 @@ export default function ProfilePage() {
       setCollege(userProfile.college || "");
       setGraduationYear(userProfile.graduationYear || new Date().getFullYear() + 4);
     }
-  }, [user, userProfile, router]);
+  }, [user?.uid, userProfile?.updatedAt, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,9 +73,9 @@ export default function ProfilePage() {
       {/* Header */}
       <div className="border-b" style={{ borderColor: 'var(--surface-light)', background: 'var(--surface)' }}>
         <div className="max-w-3xl mx-auto px-6 py-4">
-          <Link href="/dashboard" 
-                className="inline-flex items-center gap-2 font-medium transition-all hover:scale-105"
-                style={{ color: 'var(--primary)' }}>
+          <Link href="/dashboard"
+            className="inline-flex items-center gap-2 font-medium transition-all hover:scale-105"
+            style={{ color: 'var(--primary)' }}>
             ← Back to Dashboard
           </Link>
         </div>
@@ -99,8 +99,8 @@ export default function ProfilePage() {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 rounded-lg border" 
-                 style={{ background: 'var(--danger-light)', borderColor: 'var(--danger)', color: 'var(--danger)' }}>
+            <div className="mb-6 p-4 rounded-lg border"
+              style={{ background: 'var(--danger-light)', borderColor: 'var(--danger)', color: 'var(--danger)' }}>
               {error}
             </div>
           )}
@@ -117,8 +117,8 @@ export default function ProfilePage() {
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   className="w-full rounded-lg p-3 border transition-all focus:outline-none focus:ring-2"
-                  style={{ 
-                    background: 'var(--surface-light)', 
+                  style={{
+                    background: 'var(--surface-light)',
                     borderColor: 'var(--surface-lighter)',
                     color: 'var(--foreground)'
                   }}
@@ -136,8 +136,8 @@ export default function ProfilePage() {
                   value={user.email || ""}
                   readOnly
                   className="w-full rounded-lg p-3 border"
-                  style={{ 
-                    background: 'var(--surface)', 
+                  style={{
+                    background: 'var(--surface)',
                     borderColor: 'var(--surface-lighter)',
                     color: 'var(--muted)',
                     cursor: 'not-allowed'
@@ -152,11 +152,11 @@ export default function ProfilePage() {
                 </label>
                 <div className="flex gap-2">
                   <div className="flex items-center px-3 rounded-lg border"
-                       style={{ 
-                         background: 'var(--surface)', 
-                         borderColor: 'var(--surface-lighter)',
-                         color: 'var(--muted)'
-                       }}>
+                    style={{
+                      background: 'var(--surface)',
+                      borderColor: 'var(--surface-lighter)',
+                      color: 'var(--muted)'
+                    }}>
                     +91
                   </div>
                   <input
@@ -164,8 +164,8 @@ export default function ProfilePage() {
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     className="flex-1 rounded-lg p-3 border transition-all focus:outline-none focus:ring-2"
-                    style={{ 
-                      background: 'var(--surface-light)', 
+                    style={{
+                      background: 'var(--surface-light)',
                       borderColor: 'var(--surface-lighter)',
                       color: 'var(--foreground)'
                     }}
@@ -185,8 +185,8 @@ export default function ProfilePage() {
                   value={college}
                   onChange={(e) => setCollege(e.target.value)}
                   className="w-full rounded-lg p-3 border transition-all focus:outline-none focus:ring-2"
-                  style={{ 
-                    background: 'var(--surface-light)', 
+                  style={{
+                    background: 'var(--surface-light)',
                     borderColor: 'var(--surface-lighter)',
                     color: 'var(--foreground)'
                   }}
@@ -203,8 +203,8 @@ export default function ProfilePage() {
                   value={graduationYear}
                   onChange={(e) => setGraduationYear(parseInt(e.target.value))}
                   className="w-full rounded-lg p-3 border transition-all focus:outline-none focus:ring-2"
-                  style={{ 
-                    background: 'var(--surface-light)', 
+                  style={{
+                    background: 'var(--surface-light)',
                     borderColor: 'var(--surface-lighter)',
                     color: 'var(--foreground)'
                   }}
@@ -221,7 +221,7 @@ export default function ProfilePage() {
                   type="submit"
                   disabled={submitting}
                   className="flex-1 py-3 rounded-lg font-semibold transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ 
+                  style={{
                     background: submitting ? 'var(--surface-light)' : 'var(--gradient-primary)',
                     color: 'var(--foreground)'
                   }}
@@ -239,7 +239,7 @@ export default function ProfilePage() {
                     setError(null);
                   }}
                   className="px-6 py-3 rounded-lg font-semibold transition-all hover:scale-105"
-                  style={{ 
+                  style={{
                     background: 'var(--surface-light)',
                     color: 'var(--foreground)'
                   }}

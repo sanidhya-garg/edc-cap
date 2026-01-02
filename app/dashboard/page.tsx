@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { collection, query, where, getDocs, orderBy, Timestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy, Timestamp, limit } from "firebase/firestore";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { db } from "@/lib/firebase";
 import { Task, Submission } from "@/lib/types";
@@ -125,14 +125,16 @@ export default function DashboardPage() {
         // Check for cached tasks first
         // IMPORTANT: Skip cache temporarily to fix stale Timestamp data
         // TODO: Remove this cache clear after users have refreshed with new code
-        const cachedTasks = null; // Temporarily disabled: getCached<Task[]>('dashboard_tasks');
+        const cachedTasks = getCached<Task[]>('dashboard_tasks');
         if (cachedTasks) {
           setTasks(cachedTasks);
         } else {
           // Fetch all tasks (including closed ones for display)
+          // Limit to 50 most recent tasks to prevent unbound growth
           const tasksQuery = query(
             collection(db, "tasks"),
-            orderBy("createdAt", "desc")
+            orderBy("createdAt", "desc"),
+            limit(50)
           );
           const tasksSnap = await getDocs(tasksQuery);
           const tasksData = tasksSnap.docs.map(doc => ({
@@ -168,8 +170,10 @@ export default function DashboardPage() {
       }
     };
 
-    fetchData();
-  }, [user, userProfile, router]);
+    if (user) {
+      fetchData();
+    }
+  }, [user?.uid, userProfile?.rank, router]);
 
   if (!user || !userProfile) return null;
 
