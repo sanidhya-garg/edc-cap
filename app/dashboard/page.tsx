@@ -5,7 +5,7 @@ import Link from "next/link";
 import { collection, query, where, getDocs, orderBy, Timestamp, limit } from "firebase/firestore";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { db } from "@/lib/firebase";
-import { Task, Submission } from "@/lib/types";
+import { Task, Submission, UserProfile } from "@/lib/types";
 import { getCached, setCache } from "@/lib/cache";
 
 // Helper to safely convert Timestamp or cached object to Date
@@ -143,6 +143,27 @@ export default function DashboardPage() {
           })) as Task[];
           setTasks(tasksData);
           setCache('dashboard_tasks', tasksData, 5 * 60 * 1000); // Cache for 5 minutes
+        }
+
+        // PATCH: Fetch Top 10 to correct rank for top users (Fixes #2541 vs #1 discrepancy)
+        try {
+          let top10 = getCached<UserProfile[]>('leaderboard_top10');
+          if (!top10) {
+            const topUsersQuery = query(collection(db, "users"), orderBy("points", "desc"), limit(10));
+            const snap = await getDocs(topUsersQuery);
+            top10 = snap.docs.map(d => ({ uid: d.id, ...d.data() })) as UserProfile[];
+            setCache('leaderboard_top10', top10, 2 * 60 * 1000);
+          }
+
+          if (top10 && user.uid) {
+            const inTop = top10.find(u => u.uid === user.uid);
+            if (inTop) {
+              const better = top10.filter(u => (u.points || 0) > (inTop.points || 0));
+              setUserRank(better.length + 1);
+            }
+          }
+        } catch (e) {
+          console.error("Error fetching top 10 for rank patch:", e);
         }
 
         // Fetch user's submissions (these change more frequently, shorter cache)
