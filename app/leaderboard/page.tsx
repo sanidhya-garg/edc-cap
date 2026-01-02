@@ -103,7 +103,19 @@ export default function LeaderboardPage() {
               <div>
                 <p className="text-sm opacity-90" style={{ color: 'var(--foreground)' }}>Your Rank</p>
                 <h2 className="text-5xl font-bold mt-1" style={{ color: 'var(--foreground)' }}>
-                  #{userProfile.rank || '-'}
+                  {(() => {
+                    // Dynamic rank calculation:
+                    // If user is in top 10, calculate real rank based on points (handles ties)
+                    // Otherwise fall back to stored rank
+                    if (user && topUsers.length > 0) {
+                      const inTopList = topUsers.find(u => u.uid === user.uid);
+                      if (inTopList) {
+                        const betterPlayers = topUsers.filter(u => (u.points || 0) > (inTopList.points || 0));
+                        return `#${betterPlayers.length + 1}`;
+                      }
+                    }
+                    return `#${userProfile.rank || '-'}`;
+                  })()}
                 </h2>
               </div>
               <div className="text-right">
