@@ -13,7 +13,8 @@ import {
   getDocs,
   query,
   orderBy,
-  Timestamp
+  Timestamp,
+  increment
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { StoreItem, Order, OrderStatus } from "@/lib/types";
@@ -51,6 +52,7 @@ export default function AdminStorePage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
+  const [processingRefund, setProcessingRefund] = useState(false);
   
   const [isLoading, setIsLoading] = useState(true);
 
@@ -238,6 +240,110 @@ export default function AdminStorePage() {
     }
   };
 
+  const handleRefundOrder = async (order: Order) => {
+    if (!confirm(`Are you sure you want to cancel this order and refund ${order.pointsUsed} points to ${order.userName}?`)) {
+      return;
+    }
+
+    try {
+      setProcessingRefund(true);
+
+      // Update order status to cancelled
+      const orderRef = doc(db, "orders", order.id);
+      await updateDoc(orderRef, {
+        status: "cancelled",
+        updatedAt: Timestamp.now(),
+      });
+
+      // Refund points to user
+      if (order.pointsUsed > 0) {
+        const userRef = doc(db, "users", order.userId);
+        await updateDoc(userRef, {
+          points: increment(order.pointsUsed),
+        });
+      }
+
+      alert(`✅ Order cancelled and ${order.pointsUsed} points refunded to user!`);
+      
+      // Refresh orders and update selected order
+      await fetchOrders();
+      if (selectedOrder?.id === order.id) {
+        setSelectedOrder({ ...order, status: "cancelled" });
+      }
+    } catch (error) {
+      console.error("Error refunding order:", error);
+      alert("❌ Failed to refund order. Please try again.");
+    } finally {
+      setProcessingRefund(false);
+    }
+  };
+
+  const handleRefundAllOrdersForItem = async (item: StoreItem) => {
+    // Find all non-cancelled, non-delivered orders for this item
+    const itemOrders = orders.filter(
+      order => order.itemId === item.id && 
+               order.status !== 'cancelled' && 
+               order.status !== 'delivered'
+    );
+
+    if (itemOrders.length === 0) {
+      alert("No active orders found for this item.");
+      return;
+    }
+
+    const totalPoints = itemOrders.reduce((sum, order) => sum + order.pointsUsed, 0);
+    const confirmMsg = `Are you sure you want to cancel ALL ${itemOrders.length} order(s) for "${item.title}" and refund a total of ${totalPoints} points?\n\nThis will affect ${itemOrders.length} user(s).`;
+    
+    if (!confirm(confirmMsg)) {
+      return;
+    }
+
+    try {
+      setProcessingRefund(true);
+      let successCount = 0;
+      let failCount = 0;
+
+      // Process each order
+      for (const order of itemOrders) {
+        try {
+          // Update order status to cancelled
+          const orderRef = doc(db, "orders", order.id);
+          await updateDoc(orderRef, {
+            status: "cancelled",
+            updatedAt: Timestamp.now(),
+          });
+
+          // Refund points to user
+          if (order.pointsUsed > 0) {
+            const userRef = doc(db, "users", order.userId);
+            await updateDoc(userRef, {
+              points: increment(order.pointsUsed),
+            });
+          }
+
+          successCount++;
+        } catch (err) {
+          console.error(`Failed to refund order ${order.id}:`, err);
+          failCount++;
+        }
+      }
+
+      // Refresh orders
+      await fetchOrders();
+
+      if (failCount === 0) {
+        alert(`✅ Successfully cancelled ${successCount} order(s) and refunded ${totalPoints} points!`);
+      } else {
+        alert(`⚠️ Processed ${successCount} order(s) successfully.\n${failCount} order(s) failed to process.`);
+      }
+    } catch (error) {
+      console.error("Error refunding orders:", error);
+      alert("❌ Failed to process refunds. Please try again.");
+    } finally {
+      setProcessingRefund(false);
+    }
+  };
+
   const getStatusColor = (status: OrderStatus) => {
     switch (status) {
       case "pending": return "#FFA500";
@@ -398,6 +504,14 @@ export default function AdminStorePage() {
                         style={{ background: item.isPaused ? '#10B981' : '#FFA500', color: 'white' }}
                       >
                         {item.isPaused ? '▶️ Resume' : '⏸️ Pause'}
+                      </button>
+                      <button
+                        onClick={() => handleRefundAllOrdersForItem(item)}
+                        disabled={processingRefund}
+                        className="py-2 px-3 rounded-lg font-semibold text-sm transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed col-span-2"
+                        style={{ background: '#FFE6E6', color: '#B91C1C', border: '1px solid #B91C1C' }}
+                      >
+                        {processingRefund ? '⏳ Processing...' : '💸 Refund All Orders'}
                       </button>
                       <button
                         onClick={() => handleDeleteItem(item)}
@@ -694,6 +808,23 @@ export default function AdminStorePage() {
                   <p><strong>Last Updated:</strong> {selectedOrder.updatedAt?.toDate?.().toLocaleString() || 'N/A'}</p>
                 </div>
               </div>
+
+              {/* Refund Button - Only show if order is not delivered or already cancelled */}
+              {(selectedOrder.status !== 'delivered' && selectedOrder.status !== 'cancelled') && (
+                <div className="pt-2">
+                  <button
+                    onClick={() => handleRefundOrder(selectedOrder)}
+                    disabled={processingRefund}
+                    className="w-full py-3.5 rounded-xl font-bold text-base transition-all hover:scale-[1.02] active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ background: '#FFE6E6', color: '#B91C1C', border: '2px solid #B91C1C' }}
+                  >
+                    {processingRefund ? '⏳ Processing Refund...' : '💸 Refund & Cancel Order'}
+                  </button>
+                  <p className="text-xs text-center mt-2" style={{ color: 'var(--muted)' }}>
+                    This will cancel the order and refund {selectedOrder.pointsUsed} points to the user
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

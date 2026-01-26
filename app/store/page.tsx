@@ -28,8 +28,10 @@ export default function StorePage() {
     pincode: ""
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [processingRefundId, setProcessingRefundId] = useState<string | null>(null);
   const [storeItems, setStoreItems] = useState<StoreItem[]>([]);
   const [userOrders, setUserOrders] = useState<Map<string, Order>>(new Map());
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -86,15 +88,19 @@ export default function StorePage() {
       if (user) {
         const ordersQuery = query(
           collection(db, "orders"),
-          where("userId", "==", user.uid)
+          where("userId", "==", user.uid),
+          orderBy("createdAt", "desc")
         );
         const ordersSnap = await getDocs(ordersQuery);
         const ordersMap = new Map<string, Order>();
+        const ordersList: Order[] = [];
         ordersSnap.docs.forEach(doc => {
           const order = { id: doc.id, ...doc.data() } as Order;
           ordersMap.set(order.itemId, order);
+          ordersList.push(order);
         });
         setUserOrders(ordersMap);
+        setAllOrders(ordersList);
       }
     } catch (error) {
       console.error("Error fetching store data:", error);
@@ -333,6 +339,94 @@ export default function StorePage() {
           </div>
         </div>
 
+        {/* My Orders Section */}
+        {allOrders.length > 0 && (
+          <div className="space-y-4">
+            <div className="text-center sm:text-left">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+                📦 My Orders
+              </h2>
+              <p className="text-sm sm:text-base" style={{ color: 'var(--muted)' }}>
+                {allOrders.length} order{allOrders.length !== 1 ? 's' : ''} • Manage your redemptions
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {allOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className="rounded-xl p-5 sm:p-6 space-y-4"
+                  style={{
+                    background: 'var(--surface)',
+                    border: `2px solid ${order.status === 'cancelled' ? '#EF4444' : order.status === 'delivered' ? '#10B981' : '#8B5CF6'}`
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-bold text-lg" style={{ color: 'var(--foreground)' }}>
+                          {order.itemTitle}
+                        </h3>
+                        <span
+                          className="px-2 py-1 rounded-full text-xs font-bold"
+                          style={{
+                            background: order.status === 'cancelled' ? '#EF4444' : order.status === 'delivered' ? '#10B981' : '#8B5CF6',
+                            color: 'white'
+                          }}
+                        >
+                          {order.status.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="space-y-1 text-sm" style={{ color: 'var(--muted)' }}>
+                        <p>⭐ Points: {order.pointsUsed}</p>
+                        <p>📅 Ordered: {order.createdAt?.toDate?.().toLocaleDateString() || 'N/A'}</p>
+                        <p>📍 {order.shippingAddress.city}, {order.shippingAddress.state}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Refund Button */}
+                  {(order.status !== 'delivered' && order.status !== 'cancelled') && (
+                    <button
+                      onClick={async () => {
+                        const confirmCancel = confirm(`Are you sure you want to cancel this order and refund ${order.pointsUsed} points?`);
+                        if (!confirmCancel) return;
+                        try {
+                          setProcessingRefundId(order.id);
+                          await updateDoc(doc(db, 'orders', order.id), {
+                            status: 'cancelled',
+                            updatedAt: Timestamp.now()
+                          });
+
+                          if (order.pointsUsed > 0) {
+                            await updateDoc(doc(db, 'users', order.userId), {
+                              points: increment(order.pointsUsed)
+                            });
+                          }
+
+                          await refreshProfile();
+                          await fetchStoreData();
+                          alert(`✅ ${order.pointsUsed} points refunded and order cancelled.`);
+                        } catch (err) {
+                          console.error('Refund error:', err);
+                          alert('Failed to refund. Please try again.');
+                        } finally {
+                          setProcessingRefundId(null);
+                        }
+                      }}
+                      disabled={processingRefundId === order.id}
+                      className="w-full py-3 rounded-xl font-bold text-sm transition-all hover:scale-[1.02] active:scale-95 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ background: '#FFE6E6', color: '#B91C1C', border: '1px solid rgba(185,28,28,0.1)' }}
+                    >
+                      {processingRefundId === order.id ? '⏳ Processing...' : '💸 Refund & Cancel'}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Store Items Section */}
         <div className="space-y-6">
           <div className="text-center sm:text-left">
@@ -546,7 +640,7 @@ export default function StorePage() {
                             color: '#8B5CF6',
                             background: 'rgba(139, 92, 246, 0.1)'
                           }}>
-                          ✓ Order Status: {userOrder.status}
+                          ✓ Ordered • {userOrder.status}
                         </div>
                       ) : isUnlocked ? (
                         <button

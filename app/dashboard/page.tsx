@@ -579,9 +579,6 @@ export default function DashboardPage() {
             <div className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--primary)' }}>
               {userProfile.points || 0}
             </div>
-            <div className="text-[10px] sm:text-xs mt-1" style={{ color: 'var(--success)' }}>
-              +{submissions.filter(s => s.reviewed && s.pointsAwarded).reduce((acc, s) => acc + (s.pointsAwarded || 0), 0)} earned
-            </div>
           </div>
 
           {/* Rank */}
@@ -772,7 +769,7 @@ export default function DashboardPage() {
                             <div className="flex items-center gap-1 sm:gap-2">
                               <span className="text-base sm:text-lg">⭐</span>
                               <span style={{ color: 'var(--success)' }} className="font-bold">
-                                +{points} earned
+                                +{points} pts
                               </span>
                             </div>
                           )}
